@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="44" fill="#0f172a"/>
+  <!-- Glow -->
+  <circle cx="96" cy="52" r="30" fill="#f59e0b" opacity="0.15"/>
+  <!-- Lamp post -->
+  <rect x="91" y="70" width="10" height="100" rx="5" fill="#334155"/>
+  <!-- Arm -->
+  <path d="M96 70 Q96 50 116 48" stroke="#334155" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <!-- Lamp head -->
+  <ellipse cx="120" cy="48" rx="18" ry="10" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+  <!-- Light -->
+  <ellipse cx="120" cy="52" rx="10" ry="5" fill="#fcd34d" opacity="0.9"/>
+  <ellipse cx="120" cy="52" rx="10" ry="5" fill="#f59e0b" opacity="0.6"/>
+  <!-- Ground -->
+  <rect x="68" y="165" width="56" height="8" rx="4" fill="#334155"/>
+  <!-- Street sign -->
+  <rect x="36" y="90" width="56" height="22" rx="5" fill="#1e3a5f" stroke="#3b82f6" stroke-width="1.5"/>
+  <rect x="38" y="92" width="52" height="18" rx="4" fill="#1d4ed8" opacity="0.3"/>
+  <text x="64" y="105" font-family="Arial,sans-serif" font-size="9" font-weight="bold" fill="#93c5fd" text-anchor="middle">RUE</text>
+</svg>

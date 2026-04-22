@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="Découvrez l'histoire de la rue où vous vous trouvez">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="StreetLore">
+  <title>StreetLore</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <!-- Toast d'erreur -->
+  <div id="error-banner" class="error-banner" role="alert">
+    <span id="error-msg"></span>
+  </div>
+
+  <!-- Écran 1 : Accueil -->
+  <div id="screen-welcome" class="screen active">
+    <div class="welcome-glow"></div>
+    <div class="welcome-content">
+      <header class="logo-block">
+        <div class="logo-icon">🏮</div>
+        <h1>StreetLore</h1>
+        <p class="tagline">L'histoire de votre rue,<br>à portée de main</p>
+      </header>
+      <div class="welcome-actions">
+        <button id="btn-locate" class="btn-primary" type="button">
+          <span>📍</span> Localiser ma rue
+        </button>
+        <p class="hint">Nécessite votre position GPS</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Écran 2 : Chargement -->
+  <div id="screen-loading" class="screen" aria-live="polite">
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <p id="loading-text">Localisation en cours…</p>
+    </div>
+  </div>
+
+  <!-- Écran 3 : Confirmation -->
+  <div id="screen-confirm" class="screen">
+    <div class="confirm-wrap">
+      <div class="confirm-full-block">
+        <p class="chip-label">Vous êtes sur</p>
+        <h2 id="street-full" class="full-name"></h2>
+      </div>
+
+      <div class="confirm-card">
+        <p id="simplified-label" class="confirm-card-label">Simplifié en</p>
+        <h3 id="street-simplified" class="simplified-name"></h3>
+        <div class="edit-row">
+          <input
+            id="street-edit"
+            type="text"
+            class="edit-input"
+            placeholder="Modifier si besoin"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+          >
+        </div>
+      </div>
+
+      <div class="confirm-actions">
+        <button id="btn-confirm" class="btn-primary" type="button">
+          <span>✨</span> Découvrir l'histoire
+        </button>
+        <button id="btn-back" class="btn-ghost" type="button">← Retour</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Écran 4 : Résultats -->
+  <div id="screen-results" class="screen">
+    <div class="results-header">
+      <button id="btn-home" class="btn-circle" type="button" aria-label="Retour accueil">←</button>
+      <div class="results-title">
+        <p id="result-street-type" class="result-type"></p>
+        <h2 id="result-street-name" class="result-name"></h2>
+        <p id="result-location" class="result-location"></p>
+      </div>
+    </div>
+
+    <div class="results-body">
+      <section class="card">
+        <div class="card-head">
+          <span>📖</span><h3>Histoire</h3>
+        </div>
+        <div id="wiki-content" class="card-body">
+          <div class="skeleton"></div>
+          <div class="skeleton"></div>
+          <div class="skeleton short"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <span>🔗</span><h3>En savoir plus</h3>
+        </div>
+        <div id="links-content" class="card-body links-body">
+          <div class="skeleton"></div>
+          <div class="skeleton short"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <span>🏘️</span><h3>Le quartier</h3>
+        </div>
+        <div id="neighborhood-content" class="card-body">
+          <div class="skeleton short"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
