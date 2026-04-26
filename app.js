@@ -25,6 +25,7 @@ const state = {
   wikiCache:     {},     // cache {street|city} → résultat
   mapInstance:   null,   // instance Leaflet
   leafletLoaded: false,
+  manualEdit:    false,  // true si l'utilisateur a modifié le nom manuellement
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -754,13 +755,13 @@ async function renderPlaques() {
 async function share() {
   const name     = document.getElementById('result-name').textContent;
   const location = document.getElementById('result-location').textContent;
-  const type     = state.resultType === 'street' ? 'rue' : 'ville';
+  const appUrl   = 'https://yvesmorel888.github.io/streetlore/';
   const text     = `${name} (${location}) — découvert avec StreetLore`;
   try {
     if (navigator.share) {
-      await navigator.share({ title: `StreetLore · ${name}`, text, url: location.href });
+      await navigator.share({ title: `StreetLore · ${name}`, text, url: appUrl });
     } else {
-      await navigator.clipboard.writeText(`${name}\n${location}\nhttps://yvesmorel888.github.io/streetlore/`);
+      await navigator.clipboard.writeText(`${text}\n${appUrl}`);
       showToast('📋 Copié dans le presse-papier');
     }
   } catch { /* annulé par l'utilisateur */ }
@@ -773,9 +774,12 @@ async function share() {
 function setSplashText(t) { document.getElementById('splash-text').textContent = t; }
 
 async function locateAndLoad() {
-  // Réinitialise le cache
-  state.wikiCache = {};
-  state.plaques   = [];
+  // Réinitialise le cache et le mode manuel
+  state.wikiCache   = {};
+  state.plaques     = [];
+  state.manualEdit  = false;
+  document.getElementById('manual-notice').classList.add('hidden');
+  document.getElementById('edit-name-form').classList.remove('visible');
 
   showScreen('screen-splash');
   document.getElementById('btn-retry').classList.add('hidden');
@@ -838,6 +842,57 @@ function showSplashError(msg) {
 
 document.getElementById('btn-retry').addEventListener('click', locateAndLoad);
 document.getElementById('btn-relocate').addEventListener('click', locateAndLoad);
+
+// ── Édition manuelle du nom de rue ────────────────────────────────────────────
+document.getElementById('btn-edit-name').addEventListener('click', () => {
+  const form  = document.getElementById('edit-name-form');
+  const input = document.getElementById('edit-name-input');
+  form.classList.toggle('visible');
+  if (form.classList.contains('visible')) {
+    input.value = state.streetSimple;
+    input.focus();
+    input.select();
+  }
+});
+
+document.getElementById('btn-edit-cancel').addEventListener('click', () => {
+  document.getElementById('edit-name-form').classList.remove('visible');
+});
+
+document.getElementById('btn-edit-confirm').addEventListener('click', applyManualEdit);
+document.getElementById('edit-name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') applyManualEdit();
+  if (e.key === 'Escape') document.getElementById('edit-name-form').classList.remove('visible');
+});
+
+function applyManualEdit() {
+  const input = document.getElementById('edit-name-input');
+  const raw   = input.value.trim();
+  if (!raw) return;
+
+  // Détecte et retire le préfixe de type si l'utilisateur l'a inclus
+  const { simplified, type } = parseStreet(raw);
+  state.streetSimple = simplified;
+  state.streetType   = type;
+  state.streetFull   = raw;
+  state.manualEdit   = true;
+  state.wikiCache    = {}; // invalide le cache
+
+  // Met à jour l'affichage
+  document.getElementById('home-street-type').textContent = type;
+  document.getElementById('home-street-name').textContent = simplified;
+  document.getElementById('btn-street-sub').textContent   = simplified;
+
+  // Ferme le formulaire
+  document.getElementById('edit-name-form').classList.remove('visible');
+
+  // Affiche la notice et masque les plaques
+  document.getElementById('manual-notice').classList.remove('hidden');
+  document.getElementById('plaques-section').classList.add('hidden');
+  document.getElementById('plaques-loading').classList.add('hidden');
+
+  showToast(`✏️ Nom modifié : ${simplified}`);
+}
 
 document.getElementById('btn-street').addEventListener('click', () => renderResults('street'));
 document.getElementById('btn-city').addEventListener('click',   () => renderResults('city'));

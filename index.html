@@ -49,8 +49,33 @@
       <div class="location-card">
         <p class="eyebrow">Vous êtes sur</p>
         <p id="home-street-type" class="loc-type"></p>
-        <h2 id="home-street-name" class="loc-name"></h2>
+        <div class="loc-name-row">
+          <h2 id="home-street-name" class="loc-name"></h2>
+          <button id="btn-edit-name" class="btn-edit-name" type="button" title="Modifier le nom">✏️</button>
+        </div>
         <p id="home-city" class="loc-city"></p>
+
+        <!-- Formulaire édition manuelle -->
+        <div id="edit-name-form" class="edit-name-form">
+          <input
+            id="edit-name-input"
+            type="text"
+            class="edit-name-input"
+            placeholder="Ex : Victor Hugo"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false"
+          >
+          <div class="edit-name-row">
+            <button id="btn-edit-confirm" class="btn-edit-confirm" type="button">✓ Valider</button>
+            <button id="btn-edit-cancel"  class="btn-edit-cancel"  type="button">Annuler</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notice mode manuel -->
+      <div id="manual-notice" class="manual-notice hidden">
+        ✏️ <span>Mode test — le nom a été modifié manuellement. La recherche de plaques est désactivée.</span>
       </div>
 
       <div class="action-list">
@@ -103,7 +128,6 @@
         <h2 id="result-name" class="result-name"></h2>
         <p id="result-location" class="result-location"></p>
       </div>
-      <button id="btn-share" class="btn-icon-round" aria-label="Partager" type="button">⬆</button>
     </div>
 
     <div class="results-body">
@@ -142,6 +166,11 @@
           <div class="skeleton short"></div>
         </div>
       </section>
+
+      <!-- Bouton partager en bas -->
+      <button id="btn-share" class="btn-share-full" type="button">
+        ⬆ Partager cette fiche
+      </button>
     </div>
   </div>
 
