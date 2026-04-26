@@ -1,7 +1,7 @@
 {
   "name": "StreetLore",
   "short_name": "StreetLore",
-  "description": "Découvrez l'histoire de la rue où vous vous trouvez",
+  "description": "Découvrez l'histoire de votre rue, de votre ville et les plaques commémoratives à proximité",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0f172a",

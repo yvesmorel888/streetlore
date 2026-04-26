@@ -1,4 +1,4 @@
-const CACHE = 'streetlore-v1';
+const CACHE = 'streetlore-v2';
 const SHELL = ['./', './index.html', './style.css', './app.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
@@ -17,10 +17,17 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = e.request.url;
-  // APIs toujours en réseau
-  if (url.includes('nominatim') || url.includes('wikipedia') || url.includes('fonts.goog')) {
-    return;
-  }
+  // Toujours réseau pour les APIs externes
+  if (
+    url.includes('nominatim') ||
+    url.includes('wikipedia') ||
+    url.includes('wikidata') ||
+    url.includes('overpass') ||
+    url.includes('openplaques') ||
+    url.includes('commons.wikimedia') ||
+    url.includes('unpkg.com') ||
+    url.includes('fonts.goog')
+  ) return;
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );

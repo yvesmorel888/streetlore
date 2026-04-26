@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
-  <meta name="description" content="Découvrez l'histoire de la rue où vous vous trouvez">
+  <meta name="description" content="Découvrez l'histoire de votre rue et de votre ville">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="StreetLore">
@@ -18,86 +18,101 @@
 </head>
 <body>
 
-  <!-- Toast d'erreur -->
-  <div id="error-banner" class="error-banner" role="alert">
-    <span id="error-msg"></span>
-  </div>
+  <!-- Toast notification -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- Écran 1 : Accueil -->
-  <div id="screen-welcome" class="screen active">
-    <div class="welcome-glow"></div>
-    <div class="welcome-content">
-      <header class="logo-block">
+  <!-- ═══ Écran 1 : Splash / GPS auto ═══════════════════════════════════════ -->
+  <div id="screen-splash" class="screen active">
+    <div class="splash-content">
+      <header class="splash-logo">
         <div class="logo-icon">🏮</div>
         <h1>StreetLore</h1>
-        <p class="tagline">L'histoire de votre rue,<br>à portée de main</p>
       </header>
-      <div class="welcome-actions">
-        <button id="btn-locate" class="btn-primary" type="button">
-          <span>📍</span> Localiser ma rue
+      <div class="splash-status">
+        <div class="spinner" id="splash-spinner"></div>
+        <p id="splash-text">Localisation en cours…</p>
+      </div>
+      <button id="btn-retry" class="btn-retry hidden" type="button">
+        🔄 Réessayer
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ Écran 2 : Accueil ════════════════════════════════════════════════ -->
+  <div id="screen-home" class="screen">
+    <div class="home-bar">
+      <div class="home-logo">🏮 <span>StreetLore</span></div>
+      <button id="btn-about" class="btn-icon-round" aria-label="À propos" type="button">ℹ</button>
+    </div>
+
+    <div class="home-content">
+      <div class="location-card">
+        <p class="eyebrow">Vous êtes sur</p>
+        <p id="home-street-type" class="loc-type"></p>
+        <h2 id="home-street-name" class="loc-name"></h2>
+        <p id="home-city" class="loc-city"></p>
+      </div>
+
+      <div class="action-list">
+        <button id="btn-street" class="btn-action" type="button">
+          <span class="ba-icon">📖</span>
+          <span class="ba-body">
+            <span class="ba-title">Histoire de la rue</span>
+            <span id="btn-street-sub" class="ba-sub"></span>
+          </span>
+          <span class="ba-arrow">›</span>
         </button>
-        <p class="hint">Nécessite votre position GPS</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Écran 2 : Chargement -->
-  <div id="screen-loading" class="screen" aria-live="polite">
-    <div class="loading-wrap">
-      <div class="spinner"></div>
-      <p id="loading-text">Localisation en cours…</p>
-    </div>
-  </div>
-
-  <!-- Écran 3 : Confirmation -->
-  <div id="screen-confirm" class="screen">
-    <div class="confirm-wrap">
-      <div class="confirm-full-block">
-        <p class="chip-label">Vous êtes sur</p>
-        <h2 id="street-full" class="full-name"></h2>
+        <button id="btn-city" class="btn-action" type="button">
+          <span class="ba-icon">🏙️</span>
+          <span class="ba-body">
+            <span class="ba-title">Histoire de la ville</span>
+            <span id="btn-city-sub" class="ba-sub"></span>
+          </span>
+          <span class="ba-arrow">›</span>
+        </button>
       </div>
 
-      <div class="confirm-card">
-        <p id="simplified-label" class="confirm-card-label">Simplifié en</p>
-        <h3 id="street-simplified" class="simplified-name"></h3>
-        <div class="edit-row">
-          <input
-            id="street-edit"
-            type="text"
-            class="edit-input"
-            placeholder="Modifier si besoin"
-            autocomplete="off"
-            autocorrect="off"
-            spellcheck="false"
-          >
+      <!-- Plaques badge -->
+      <div id="plaques-loading" class="plaques-loading">
+        <div class="spinner-sm"></div>
+        <span>Recherche de plaques à proximité…</span>
+      </div>
+      <div id="plaques-section" class="plaques-section hidden">
+        <div class="plaques-left">
+          <span class="plaques-medal">🏅</span>
+          <div>
+            <p id="plaques-label" class="plaques-label"></p>
+            <p class="plaques-sub">dans un rayon de 500 m</p>
+          </div>
         </div>
+        <button id="btn-plaques" class="btn-see-plaques" type="button">Voir →</button>
       </div>
 
-      <div class="confirm-actions">
-        <button id="btn-confirm" class="btn-primary" type="button">
-          <span>✨</span> Découvrir l'histoire
-        </button>
-        <button id="btn-back" class="btn-ghost" type="button">← Retour</button>
-      </div>
+      <button id="btn-relocate" class="btn-relocate" type="button">
+        🔄 Nouvelle localisation
+      </button>
     </div>
   </div>
 
-  <!-- Écran 4 : Résultats -->
+  <!-- ═══ Écran 3 : Résultats (rue ou ville) ══════════════════════════════ -->
   <div id="screen-results" class="screen">
     <div class="results-header">
-      <button id="btn-home" class="btn-circle" type="button" aria-label="Retour accueil">←</button>
+      <button id="btn-back-results" class="btn-circle" aria-label="Retour" type="button">←</button>
       <div class="results-title">
-        <p id="result-street-type" class="result-type"></p>
-        <h2 id="result-street-name" class="result-name"></h2>
+        <p id="result-eyebrow" class="result-eyebrow"></p>
+        <h2 id="result-name" class="result-name"></h2>
         <p id="result-location" class="result-location"></p>
       </div>
+      <button id="btn-share" class="btn-icon-round" aria-label="Partager" type="button">⬆</button>
     </div>
 
     <div class="results-body">
+      <!-- Badge fiabilité de la source -->
+      <div id="source-badge" class="source-badge hidden"></div>
+
+      <!-- Histoire (Wikipedia) -->
       <section class="card">
-        <div class="card-head">
-          <span>📖</span><h3>Histoire</h3>
-        </div>
+        <div class="card-head"><span>📖</span><h3>Histoire</h3></div>
         <div id="wiki-content" class="card-body">
           <div class="skeleton"></div>
           <div class="skeleton"></div>
@@ -105,24 +120,123 @@
         </div>
       </section>
 
+      <!-- Contexte local (lien avec la ville) -->
+      <section id="local-section" class="card hidden">
+        <div class="card-head"><span>📍</span><h3 id="local-title">Lien avec la ville</h3></div>
+        <div id="local-content" class="card-body"></div>
+      </section>
+
+      <!-- En savoir plus -->
       <section class="card">
-        <div class="card-head">
-          <span>🔗</span><h3>En savoir plus</h3>
-        </div>
+        <div class="card-head"><span>🔗</span><h3>En savoir plus</h3></div>
         <div id="links-content" class="card-body links-body">
           <div class="skeleton"></div>
           <div class="skeleton short"></div>
         </div>
       </section>
 
-      <section class="card">
-        <div class="card-head">
-          <span>🏘️</span><h3>Le quartier</h3>
-        </div>
+      <!-- Quartier (uniquement rue) -->
+      <section id="neighborhood-section" class="card">
+        <div class="card-head"><span>🏘️</span><h3>Le quartier</h3></div>
         <div id="neighborhood-content" class="card-body">
           <div class="skeleton short"></div>
         </div>
       </section>
+    </div>
+  </div>
+
+  <!-- ═══ Écran 4 : Plaques commémoratives ════════════════════════════════ -->
+  <div id="screen-plaques" class="screen">
+    <div class="results-header">
+      <button id="btn-back-plaques" class="btn-circle" aria-label="Retour" type="button">←</button>
+      <div class="results-title">
+        <p class="result-eyebrow">À proximité</p>
+        <h2 class="result-name">Plaques commémoratives</h2>
+        <p id="plaques-location" class="result-location"></p>
+      </div>
+    </div>
+    <div id="map-container" class="map-container"></div>
+    <div class="plaques-list-wrap">
+      <div id="plaques-list" class="plaques-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══ Écran 5 : À propos ══════════════════════════════════════════════ -->
+  <div id="screen-about" class="screen">
+    <div class="results-header">
+      <button id="btn-back-about" class="btn-circle" aria-label="Retour" type="button">←</button>
+      <div class="results-title">
+        <p class="result-eyebrow">Application</p>
+        <h2 class="result-name">À propos</h2>
+      </div>
+    </div>
+    <div class="about-body">
+      <div class="about-hero">
+        <div class="about-hero-icon">🏮</div>
+        <h2>StreetLore</h2>
+        <p>L'histoire de votre rue et de votre ville,<br>à portée de main</p>
+      </div>
+
+      <div class="card changelog-card">
+        <div class="card-head"><span>📋</span><h3>Historique des versions</h3></div>
+        <div class="card-body">
+          <div class="cl-entry">
+            <div class="cl-header">
+              <span class="cl-version">V2</span>
+              <span class="cl-date">26 / 04 / 2026</span>
+              <span class="cl-badge">Actuelle</span>
+            </div>
+            <ul class="cl-list">
+              <li>Chargement automatique au démarrage</li>
+              <li>Informations sur la ville</li>
+              <li>Écran d'accueil avec choix rue / ville</li>
+              <li>Plaques commémoratives à proximité (OpenPlaques + OpenStreetMap)</li>
+              <li>Mini-carte interactive des plaques (Leaflet)</li>
+              <li>Recherche intelligente multi-couches :<br>
+                  étymologie OSM · classification du nom · contexte local</li>
+              <li>Badge de fiabilité de la source</li>
+              <li>Bouton Partager</li>
+              <li>Section À propos et changelog</li>
+            </ul>
+          </div>
+          <div class="cl-entry">
+            <div class="cl-header">
+              <span class="cl-version">V1</span>
+              <span class="cl-date">25 / 04 / 2026</span>
+            </div>
+            <ul class="cl-list">
+              <li>Version initiale</li>
+              <li>Géolocalisation GPS</li>
+              <li>Identification et simplification du nom de rue</li>
+              <li>Informations Wikipedia</li>
+              <li>Infos sur le quartier</li>
+              <li>Application web progressive (PWA, installable)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span>🛰️</span><h3>Sources de données</h3></div>
+        <div class="card-body sources-body">
+          <a href="https://www.openstreetmap.org" target="_blank" rel="noopener" class="source-item">
+            <span>🗺️</span><span>OpenStreetMap · Nominatim · Overpass</span>
+          </a>
+          <a href="https://fr.wikipedia.org" target="_blank" rel="noopener" class="source-item">
+            <span>📖</span><span>Wikipédia (français)</span>
+          </a>
+          <a href="https://www.wikidata.org" target="_blank" rel="noopener" class="source-item">
+            <span>🔗</span><span>Wikidata</span>
+          </a>
+          <a href="https://openplaques.org" target="_blank" rel="noopener" class="source-item">
+            <span>🏅</span><span>OpenPlaques.org</span>
+          </a>
+        </div>
+      </div>
+
+      <p class="about-footer">
+        Données libres et ouvertes · Aucune publicité<br>Aucune donnée personnelle collectée
+      </p>
     </div>
   </div>
 
