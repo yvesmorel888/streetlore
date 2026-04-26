@@ -18,219 +18,204 @@
 </head>
 <body>
 
-  <!-- Toast notification -->
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="toast" class="toast"></div>
 
-  <!-- ═══ Écran 1 : Splash / GPS auto ═══════════════════════════════════════ -->
+  <!-- ══ SPLASH ══════════════════════════════════════════════════════════════ -->
   <div id="screen-splash" class="screen active">
-    <div class="splash-content">
-      <header class="splash-logo">
-        <div class="logo-icon">🏮</div>
-        <h1>StreetLore</h1>
-      </header>
-      <div class="splash-status">
-        <div class="spinner" id="splash-spinner"></div>
-        <p id="splash-text">Localisation en cours…</p>
-      </div>
-      <button id="btn-retry" class="btn-retry hidden" type="button">
-        🔄 Réessayer
-      </button>
+    <div class="splash-inner">
+      <div class="logo-icon">🏮</div>
+      <h1>StreetLore</h1>
+      <div class="spinner" id="splash-spinner"></div>
+      <p id="splash-text">Localisation en cours…</p>
+      <button id="btn-retry" class="btn-retry hidden">🔄 Réessayer</button>
     </div>
   </div>
 
-  <!-- ═══ Écran 2 : Accueil ════════════════════════════════════════════════ -->
+  <!-- ══ ACCUEIL ═════════════════════════════════════════════════════════════ -->
   <div id="screen-home" class="screen">
-    <div class="home-bar">
-      <div class="home-logo">🏮 <span>StreetLore</span></div>
-      <button id="btn-about" class="btn-icon-round" aria-label="À propos" type="button">ℹ</button>
+
+    <div class="topbar">
+      <span class="topbar-logo">🏮 StreetLore</span>
+      <button id="btn-about" class="btn-round" aria-label="À propos">ℹ</button>
     </div>
 
-    <div class="home-content">
+    <div class="home-scroll">
+
       <div class="location-card">
         <p class="eyebrow">Vous êtes sur</p>
-        <p id="home-street-type" class="loc-type"></p>
+        <p id="home-type" class="loc-type"></p>
         <div class="loc-name-row">
-          <h2 id="home-street-name" class="loc-name"></h2>
-          <button id="btn-edit-name" class="btn-edit-name" type="button" title="Modifier le nom">✏️</button>
+          <h2 id="home-name" class="loc-name"></h2>
+          <button id="btn-edit" class="btn-edit-icon" title="Modifier">✏️</button>
         </div>
         <p id="home-city" class="loc-city"></p>
 
-        <!-- Formulaire édition manuelle -->
-        <div id="edit-name-form" class="edit-name-form">
-          <input
-            id="edit-name-input"
-            type="text"
-            class="edit-name-input"
-            placeholder="Ex : Victor Hugo"
-            autocomplete="off"
-            autocorrect="off"
-            spellcheck="false"
-          >
-          <div class="edit-name-row">
-            <button id="btn-edit-confirm" class="btn-edit-confirm" type="button">✓ Valider</button>
-            <button id="btn-edit-cancel"  class="btn-edit-cancel"  type="button">Annuler</button>
+        <div id="edit-form" class="edit-form">
+          <input id="edit-input" class="edit-input" type="text"
+            placeholder="Ex : Victor Hugo" autocomplete="off" autocorrect="off" spellcheck="false">
+          <div class="edit-btns">
+            <button id="btn-edit-ok" class="btn-edit-ok">✓ Valider</button>
+            <button id="btn-edit-cancel" class="btn-edit-cancel">Annuler</button>
           </div>
         </div>
       </div>
 
-      <!-- Notice mode manuel -->
-      <div id="manual-notice" class="manual-notice hidden">
-        ✏️ <span>Mode test — le nom a été modifié manuellement. La recherche de plaques est désactivée.</span>
+      <div id="manual-notice" class="notice hidden">
+        ✏️ Mode test — plaques désactivées
       </div>
 
-      <div class="action-list">
-        <button id="btn-street" class="btn-action" type="button">
-          <span class="ba-icon">📖</span>
-          <span class="ba-body">
-            <span class="ba-title">Histoire de la rue</span>
-            <span id="btn-street-sub" class="ba-sub"></span>
-          </span>
-          <span class="ba-arrow">›</span>
-        </button>
-        <button id="btn-city" class="btn-action" type="button">
-          <span class="ba-icon">🏙️</span>
-          <span class="ba-body">
-            <span class="ba-title">Histoire de la ville</span>
-            <span id="btn-city-sub" class="ba-sub"></span>
-          </span>
-          <span class="ba-arrow">›</span>
-        </button>
-      </div>
+      <button id="btn-street" class="btn-action">
+        <span class="ba-icon">📖</span>
+        <span class="ba-body">
+          <span class="ba-title">Histoire de la rue</span>
+          <span id="sub-street" class="ba-sub"></span>
+        </span>
+        <span class="ba-arrow">›</span>
+      </button>
 
-      <!-- Plaques badge -->
+      <button id="btn-city" class="btn-action">
+        <span class="ba-icon">🏙️</span>
+        <span class="ba-body">
+          <span class="ba-title">Histoire de la ville</span>
+          <span id="sub-city" class="ba-sub"></span>
+        </span>
+        <span class="ba-arrow">›</span>
+      </button>
+
       <div id="plaques-loading" class="plaques-loading">
         <div class="spinner-sm"></div>
         <span>Recherche de plaques à proximité…</span>
       </div>
-      <div id="plaques-section" class="plaques-section hidden">
-        <div class="plaques-left">
-          <span class="plaques-medal">🏅</span>
+
+      <div id="plaques-badge" class="plaques-badge hidden">
+        <div class="pb-left">
+          <span>🏅</span>
           <div>
-            <p id="plaques-label" class="plaques-label"></p>
-            <p class="plaques-sub">dans un rayon de 500 m</p>
+            <p id="pb-label" class="pb-label"></p>
+            <p class="pb-sub">dans un rayon de 500 m</p>
           </div>
         </div>
-        <button id="btn-plaques" class="btn-see-plaques" type="button">Voir →</button>
+        <button id="btn-plaques" class="btn-see">Voir →</button>
       </div>
 
-      <button id="btn-relocate" class="btn-relocate" type="button">
-        🔄 Nouvelle localisation
-      </button>
-    </div>
+      <button id="btn-relocate" class="btn-ghost">🔄 Nouvelle localisation</button>
+
+    </div><!-- /home-scroll -->
   </div>
 
-  <!-- ═══ Écran 3 : Résultats (rue ou ville) ══════════════════════════════ -->
+  <!-- ══ RÉSULTATS ═══════════════════════════════════════════════════════════ -->
   <div id="screen-results" class="screen">
-    <div class="results-header">
-      <button id="btn-back-results" class="btn-circle" aria-label="Retour" type="button">←</button>
-      <div class="results-title">
-        <p id="result-eyebrow" class="result-eyebrow"></p>
-        <h2 id="result-name" class="result-name"></h2>
-        <p id="result-location" class="result-location"></p>
+
+    <div class="topbar topbar-results">
+      <button id="btn-back-results" class="btn-round">←</button>
+      <div class="topbar-title">
+        <p id="res-eyebrow" class="res-eyebrow"></p>
+        <h2 id="res-name" class="res-name"></h2>
+        <p id="res-city" class="res-city"></p>
       </div>
     </div>
 
-    <div class="results-body">
-      <!-- Badge fiabilité de la source -->
+    <div class="results-scroll">
+
       <div id="source-badge" class="source-badge hidden"></div>
 
-      <!-- Histoire (Wikipedia) -->
-      <section class="card">
+      <div class="card">
         <div class="card-head"><span>📖</span><h3>Histoire</h3></div>
         <div id="wiki-content" class="card-body">
-          <div class="skeleton"></div>
-          <div class="skeleton"></div>
-          <div class="skeleton short"></div>
+          <div class="sk"></div><div class="sk"></div><div class="sk short"></div>
         </div>
-      </section>
+      </div>
 
-      <!-- Contexte local (lien avec la ville) -->
-      <section id="local-section" class="card hidden">
+      <div id="local-card" class="card hidden">
         <div class="card-head"><span>📍</span><h3 id="local-title">Lien avec la ville</h3></div>
         <div id="local-content" class="card-body"></div>
-      </section>
+      </div>
 
-      <!-- En savoir plus -->
-      <section class="card">
+      <div class="card">
         <div class="card-head"><span>🔗</span><h3>En savoir plus</h3></div>
         <div id="links-content" class="card-body links-body">
-          <div class="skeleton"></div>
-          <div class="skeleton short"></div>
+          <div class="sk"></div><div class="sk short"></div>
         </div>
-      </section>
+      </div>
 
-      <!-- Quartier (uniquement rue) -->
-      <section id="neighborhood-section" class="card">
+      <div id="nb-card" class="card">
         <div class="card-head"><span>🏘️</span><h3>Le quartier</h3></div>
-        <div id="neighborhood-content" class="card-body">
-          <div class="skeleton short"></div>
+        <div id="nb-content" class="card-body">
+          <div class="sk short"></div>
         </div>
-      </section>
+      </div>
 
-      <!-- Bouton partager en bas -->
-      <button id="btn-share" class="btn-share-full" type="button">
-        ⬆ Partager cette fiche
-      </button>
-    </div>
+      <button id="btn-share" class="btn-ghost btn-share-footer">⬆ Partager cette fiche</button>
+
+    </div><!-- /results-scroll -->
   </div>
 
-  <!-- ═══ Écran 4 : Plaques commémoratives ════════════════════════════════ -->
+  <!-- ══ PLAQUES ═════════════════════════════════════════════════════════════ -->
   <div id="screen-plaques" class="screen">
-    <div class="results-header">
-      <button id="btn-back-plaques" class="btn-circle" aria-label="Retour" type="button">←</button>
-      <div class="results-title">
-        <p class="result-eyebrow">À proximité</p>
-        <h2 class="result-name">Plaques commémoratives</h2>
-        <p id="plaques-location" class="result-location"></p>
+
+    <div class="topbar">
+      <button id="btn-back-plaques" class="btn-round">←</button>
+      <div class="topbar-title">
+        <p class="res-eyebrow">À proximité</p>
+        <h2 class="res-name">Plaques commémoratives</h2>
+        <p id="pl-subtitle" class="res-city"></p>
       </div>
     </div>
+
     <div id="map-container" class="map-container"></div>
-    <div class="plaques-list-wrap">
-      <div id="plaques-list" class="plaques-list"></div>
+
+    <div id="plaques-list-wrap" class="plaques-list-wrap">
+      <div id="plaques-list"></div>
     </div>
+
   </div>
 
-  <!-- ═══ Écran 5 : À propos ══════════════════════════════════════════════ -->
+  <!-- ══ À PROPOS ═══════════════════════════════════════════════════════════ -->
   <div id="screen-about" class="screen">
-    <div class="results-header">
-      <button id="btn-back-about" class="btn-circle" aria-label="Retour" type="button">←</button>
-      <div class="results-title">
-        <p class="result-eyebrow">Application</p>
-        <h2 class="result-name">À propos</h2>
+
+    <div class="topbar">
+      <button id="btn-back-about" class="btn-round">←</button>
+      <div class="topbar-title">
+        <p class="res-eyebrow">Application</p>
+        <h2 class="res-name">À propos</h2>
       </div>
     </div>
-    <div class="about-body">
+
+    <div class="about-scroll">
+
       <div class="about-hero">
-        <div class="about-hero-icon">🏮</div>
-        <h2>StreetLore</h2>
-        <p>L'histoire de votre rue et de votre ville,<br>à portée de main</p>
+        <div class="about-icon">🏮</div>
+        <h2 class="about-title">StreetLore</h2>
+        <p class="about-tagline">L'histoire de votre rue et de votre ville,<br>à portée de main</p>
       </div>
 
-      <div class="card changelog-card">
+      <div class="card">
         <div class="card-head"><span>📋</span><h3>Historique des versions</h3></div>
         <div class="card-body">
+
           <div class="cl-entry">
-            <div class="cl-header">
-              <span class="cl-version">V2</span>
+            <div class="cl-head">
+              <span class="cl-ver">V2</span>
               <span class="cl-date">26 / 04 / 2026</span>
-              <span class="cl-badge">Actuelle</span>
+              <span class="cl-current">Actuelle</span>
             </div>
             <ul class="cl-list">
               <li>Chargement automatique au démarrage</li>
               <li>Informations sur la ville</li>
-              <li>Écran d'accueil avec choix rue / ville</li>
-              <li>Plaques commémoratives à proximité (OpenPlaques + OpenStreetMap)</li>
-              <li>Mini-carte interactive des plaques (Leaflet)</li>
-              <li>Recherche intelligente multi-couches :<br>
-                  étymologie OSM · classification du nom · contexte local</li>
+              <li>Choix rue / ville dès l'accueil</li>
+              <li>Édition manuelle du nom pour tests</li>
+              <li>Plaques commémoratives à proximité (OpenPlaques + OSM)</li>
+              <li>Mini-carte interactive (Leaflet)</li>
+              <li>Recherche intelligente : étymologie OSM, classification, contexte local</li>
               <li>Badge de fiabilité de la source</li>
-              <li>Bouton Partager</li>
+              <li>Partage avec lien direct vers la fiche</li>
               <li>Section À propos et changelog</li>
             </ul>
           </div>
+
           <div class="cl-entry">
-            <div class="cl-header">
-              <span class="cl-version">V1</span>
+            <div class="cl-head">
+              <span class="cl-ver">V1</span>
               <span class="cl-date">25 / 04 / 2026</span>
             </div>
             <ul class="cl-list">
@@ -242,31 +227,31 @@
               <li>Application web progressive (PWA, installable)</li>
             </ul>
           </div>
+
         </div>
       </div>
 
       <div class="card">
         <div class="card-head"><span>🛰️</span><h3>Sources de données</h3></div>
         <div class="card-body sources-body">
-          <a href="https://www.openstreetmap.org" target="_blank" rel="noopener" class="source-item">
+          <a href="https://www.openstreetmap.org" target="_blank" rel="noopener" class="source-row">
             <span>🗺️</span><span>OpenStreetMap · Nominatim · Overpass</span>
           </a>
-          <a href="https://fr.wikipedia.org" target="_blank" rel="noopener" class="source-item">
+          <a href="https://fr.wikipedia.org" target="_blank" rel="noopener" class="source-row">
             <span>📖</span><span>Wikipédia (français)</span>
           </a>
-          <a href="https://www.wikidata.org" target="_blank" rel="noopener" class="source-item">
+          <a href="https://www.wikidata.org" target="_blank" rel="noopener" class="source-row">
             <span>🔗</span><span>Wikidata</span>
           </a>
-          <a href="https://openplaques.org" target="_blank" rel="noopener" class="source-item">
+          <a href="https://openplaques.org" target="_blank" rel="noopener" class="source-row">
             <span>🏅</span><span>OpenPlaques.org</span>
           </a>
         </div>
       </div>
 
-      <p class="about-footer">
-        Données libres et ouvertes · Aucune publicité<br>Aucune donnée personnelle collectée
-      </p>
-    </div>
+      <p class="about-footer">Données libres · Aucune pub · Aucune donnée collectée</p>
+
+    </div><!-- /about-scroll -->
   </div>
 
   <script src="./app.js"></script>
