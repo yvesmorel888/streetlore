@@ -54,7 +54,7 @@
     </div>
     <div class="home-scroll">
 
-      <p class="version-label">v2.1 · 27/04/2026</p>
+      <p class="version-label">v2.2 · 27/04/2026</p>
 
       <div class="location-card">
         <p class="eyebrow">Vous êtes sur</p>
@@ -106,7 +106,7 @@
           <span>🏅</span>
           <div>
             <p id="pb-label" class="pb-label"></p>
-            <p class="pb-sub">dans un rayon de 1 km</p>
+            <p class="pb-sub">dans un rayon de 500 m</p>
           </div>
         </div>
         <button id="btn-plaques" class="btn-see">Voir →</button>
@@ -201,19 +201,32 @@
 
           <div class="cl-entry">
             <div class="cl-head">
-              <span class="cl-ver">2.1</span>
+              <span class="cl-ver">2.2</span>
               <span class="cl-date">27 / 04 / 2026</span>
               <span class="cl-current">Actuelle</span>
+            </div>
+            <ul class="cl-list">
+              <li>Bouton "Demander à l'IA" toujours visible dans "En savoir plus"</li>
+              <li>Liens simplifiés : plus de doublons Wikipedia / Google</li>
+              <li>Pertinence Wikipedia : rejet communes et hors-sujets via description Wikidata</li>
+              <li>Contexte local filtré : supprimé si l'article concerne déjà la ville</li>
+              <li>Photos plaques : enrichissement depuis catégories Wikimedia Commons</li>
+              <li>Photos plaques : miniature Wikipedia quand lien disponible</li>
+              <li>Rayon plaques ramené à 500 m</li>
+            </ul>
+          </div>
+
+          <div class="cl-entry">
+            <div class="cl-head">
+              <span class="cl-ver">2.1</span>
+              <span class="cl-date">27 / 04 / 2026</span>
             </div>
             <ul class="cl-list">
               <li>Détection des intersections — choix de la rue quand plusieurs à proximité</li>
               <li>Recherche Wikipedia améliorée : page dédiée à la rue en priorité</li>
               <li>Validation de pertinence Wikipedia (évite les hors-sujets)</li>
-              <li>Plaques : rayon élargi à 1 km, tags OSM étendus</li>
               <li>Plaques : source Wikidata SPARQL avec photos</li>
               <li>Bouton "Demander à l'IA" pour les rues sans information</li>
-              <li>Versioning sémantique (1.0 / 2.0 / 2.1)</li>
-              <li>Section À propos mise à jour</li>
             </ul>
           </div>
 
