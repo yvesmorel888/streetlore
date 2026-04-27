@@ -31,18 +31,30 @@
     </div>
   </div>
 
+  <!-- ══ SÉLECTION DE RUE (intersection) ════════════════════════════════════ -->
+  <div id="screen-select" class="screen">
+    <div class="topbar">
+      <button id="btn-back-select" class="btn-round">←</button>
+      <div class="topbar-title">
+        <p class="res-eyebrow">Plusieurs rues à proximité</p>
+        <h2 class="res-name">Laquelle ?</h2>
+      </div>
+    </div>
+    <div class="select-scroll">
+      <p class="select-hint">📍 Votre position est à la croisée de plusieurs rues. Sélectionnez celle où vous vous trouvez.</p>
+      <div id="street-choices" class="street-choices"></div>
+    </div>
+  </div>
+
   <!-- ══ ACCUEIL ═════════════════════════════════════════════════════════════ -->
   <div id="screen-home" class="screen">
-
     <div class="topbar">
       <span class="topbar-logo">🏮 StreetLore</span>
       <button id="btn-about" class="btn-round" aria-label="À propos">ℹ</button>
     </div>
-
     <div class="home-scroll">
 
-      <!-- Version visible pour confirmer la mise à jour -->
-      <p class="version-label">StreetLore · V5 · 27/04/2026</p>
+      <p class="version-label">v2.1 · 27/04/2026</p>
 
       <div class="location-card">
         <p class="eyebrow">Vous êtes sur</p>
@@ -52,7 +64,6 @@
           <button id="btn-edit" class="btn-edit-icon" title="Modifier">✏️</button>
         </div>
         <p id="home-city" class="loc-city"></p>
-
         <div id="edit-form" class="edit-form">
           <input id="edit-input" class="edit-input" type="text"
             placeholder="Ex : Victor Hugo" autocomplete="off" autocorrect="off" spellcheck="false">
@@ -95,7 +106,7 @@
           <span>🏅</span>
           <div>
             <p id="pb-label" class="pb-label"></p>
-            <p class="pb-sub">dans un rayon de 500 m</p>
+            <p class="pb-sub">dans un rayon de 1 km</p>
           </div>
         </div>
         <button id="btn-plaques" class="btn-see">Voir →</button>
@@ -103,12 +114,11 @@
 
       <button id="btn-relocate" class="btn-ghost">🔄 Nouvelle localisation</button>
 
-    </div><!-- /home-scroll -->
+    </div>
   </div>
 
   <!-- ══ RÉSULTATS ═══════════════════════════════════════════════════════════ -->
   <div id="screen-results" class="screen">
-
     <div class="topbar topbar-results">
       <button id="btn-back-results" class="btn-round">←</button>
       <div class="topbar-title">
@@ -117,7 +127,6 @@
         <p id="res-city" class="res-city"></p>
       </div>
     </div>
-
     <div class="results-scroll">
 
       <div id="source-badge" class="source-badge hidden"></div>
@@ -150,32 +159,27 @@
 
       <button id="btn-share" class="btn-ghost btn-share-footer">⬆ Partager cette fiche</button>
 
-    </div><!-- /results-scroll -->
+    </div>
   </div>
 
   <!-- ══ PLAQUES ═════════════════════════════════════════════════════════════ -->
   <div id="screen-plaques" class="screen">
-
     <div class="topbar">
       <button id="btn-back-plaques" class="btn-round">←</button>
       <div class="topbar-title">
-        <p class="res-eyebrow">À proximité</p>
+        <p class="res-eyebrow">À proximité · 1 km</p>
         <h2 class="res-name">Plaques commémoratives</h2>
         <p id="pl-subtitle" class="res-city"></p>
       </div>
     </div>
-
     <div id="map-container" class="map-container"></div>
-
     <div id="plaques-list-wrap" class="plaques-list-wrap">
       <div id="plaques-list"></div>
     </div>
-
   </div>
 
   <!-- ══ À PROPOS ═══════════════════════════════════════════════════════════ -->
   <div id="screen-about" class="screen">
-
     <div class="topbar">
       <button id="btn-back-about" class="btn-round">←</button>
       <div class="topbar-title">
@@ -183,7 +187,6 @@
         <h2 class="res-name">À propos</h2>
       </div>
     </div>
-
     <div class="about-scroll">
 
       <div class="about-hero">
@@ -198,9 +201,26 @@
 
           <div class="cl-entry">
             <div class="cl-head">
-              <span class="cl-ver">V2</span>
-              <span class="cl-date">26 / 04 / 2026</span>
+              <span class="cl-ver">2.1</span>
+              <span class="cl-date">27 / 04 / 2026</span>
               <span class="cl-current">Actuelle</span>
+            </div>
+            <ul class="cl-list">
+              <li>Détection des intersections — choix de la rue quand plusieurs à proximité</li>
+              <li>Recherche Wikipedia améliorée : page dédiée à la rue en priorité</li>
+              <li>Validation de pertinence Wikipedia (évite les hors-sujets)</li>
+              <li>Plaques : rayon élargi à 1 km, tags OSM étendus</li>
+              <li>Plaques : source Wikidata SPARQL avec photos</li>
+              <li>Bouton "Demander à l'IA" pour les rues sans information</li>
+              <li>Versioning sémantique (1.0 / 2.0 / 2.1)</li>
+              <li>Section À propos mise à jour</li>
+            </ul>
+          </div>
+
+          <div class="cl-entry">
+            <div class="cl-head">
+              <span class="cl-ver">2.0</span>
+              <span class="cl-date">26 / 04 / 2026</span>
             </div>
             <ul class="cl-list">
               <li>Chargement automatique au démarrage</li>
@@ -212,13 +232,12 @@
               <li>Recherche intelligente : étymologie OSM, classification, contexte local</li>
               <li>Badge de fiabilité de la source</li>
               <li>Partage avec lien direct vers la fiche</li>
-              <li>Section À propos et changelog</li>
             </ul>
           </div>
 
           <div class="cl-entry">
             <div class="cl-head">
-              <span class="cl-ver">V1</span>
+              <span class="cl-ver">1.0</span>
               <span class="cl-date">25 / 04 / 2026</span>
             </div>
             <ul class="cl-list">
@@ -226,7 +245,7 @@
               <li>Géolocalisation GPS</li>
               <li>Identification et simplification du nom de rue</li>
               <li>Informations Wikipedia</li>
-              <li>Infos sur le quartier</li>
+              <li>Informations sur le quartier</li>
               <li>Application web progressive (PWA, installable)</li>
             </ul>
           </div>
@@ -244,17 +263,20 @@
             <span>📖</span><span>Wikipédia (français)</span>
           </a>
           <a href="https://www.wikidata.org" target="_blank" rel="noopener" class="source-row">
-            <span>🔗</span><span>Wikidata</span>
+            <span>🔗</span><span>Wikidata · SPARQL</span>
           </a>
           <a href="https://openplaques.org" target="_blank" rel="noopener" class="source-row">
             <span>🏅</span><span>OpenPlaques.org</span>
+          </a>
+          <a href="https://www.perplexity.ai" target="_blank" rel="noopener" class="source-row">
+            <span>🤖</span><span>Perplexity AI (recherche assistée)</span>
           </a>
         </div>
       </div>
 
       <p class="about-footer">Données libres · Aucune pub · Aucune donnée collectée</p>
 
-    </div><!-- /about-scroll -->
+    </div>
   </div>
 
   <script src="./app.js"></script>

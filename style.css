@@ -52,7 +52,8 @@ body {
 /* Écrans qui scrollent intégralement */
 #screen-home,
 #screen-results,
-#screen-about {
+#screen-about,
+#screen-select {
   overflow-y: scroll;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
@@ -354,6 +355,46 @@ h1 {
 .source-row { display: flex; align-items: center; gap: .75rem; padding: .875rem; background: rgba(255,255,255,.03); border: 1px solid var(--border); border-radius: var(--rsm); font-size: .875rem; color: var(--muted); text-decoration: none; }
 .source-row:active { background: var(--surf2); }
 .about-footer { text-align: center; font-size: .78rem; color: var(--dim); line-height: 1.7; padding-bottom: .5rem; }
+
+/* ── SÉLECTION RUE (intersection) ────────────────────────────────────────── */
+.select-scroll {
+  padding: 1rem 1.25rem calc(3rem + var(--sb));
+  display: flex; flex-direction: column; gap: .875rem;
+}
+
+.select-hint {
+  font-size: .88rem; color: var(--muted); line-height: 1.6;
+  padding: .875rem 1rem;
+  background: rgba(245,158,11,.07); border: 1px solid rgba(245,158,11,.2);
+  border-radius: var(--rsm);
+}
+
+.street-choices { display: flex; flex-direction: column; gap: .625rem; }
+
+.street-choice {
+  display: flex; align-items: center; gap: .875rem;
+  width: 100%; padding: 1.1rem 1.25rem;
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: var(--r); color: var(--text); cursor: pointer; text-align: left;
+  font-family: var(--font);
+}
+.street-choice:active { background: var(--surf2); border-color: var(--accent); }
+.sc-icon { font-size: 1.2rem; flex-shrink: 0; }
+.sc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sc-type { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin-bottom: .15rem; }
+.sc-name { font-size: 1rem; font-weight: 600; }
+.sc-arrow { color: var(--accent); font-size: 1.5rem; font-weight: 300; flex-shrink: 0; }
+
+/* ── Bouton IA (Perplexity) ──────────────────────────────────────────────── */
+.btn-ai {
+  display: flex; align-items: center; justify-content: center; gap: .625rem;
+  width: 100%; padding: .875rem;
+  background: rgba(139,92,246,.15); border: 1px solid rgba(139,92,246,.35);
+  border-radius: var(--r); color: #c4b5fd;
+  font-family: var(--font); font-size: .9rem; font-weight: 600;
+  cursor: pointer; text-decoration: none; margin-top: .75rem;
+}
+.btn-ai:active { background: rgba(139,92,246,.25); }
 
 /* ── Leaflet ─────────────────────────────────────────────────────────────── */
 .leaflet-container { background: #0f172a !important; }
