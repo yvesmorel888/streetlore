@@ -1,53 +1,101 @@
 /* ── Variables ───────────────────────────────────────────────────────────── */
 :root {
-  --bg:        #0f172a;
-  --surf:      #1e293b;
-  --surf2:     #263448;
-  --border:    #334155;
-  --accent:    #f59e0b;
-  --acl:       #fcd34d;
-  --text:      #f1f5f9;
-  --muted:     #94a3b8;
-  --dim:       #475569;
-  --green:     #10b981;
-  --green-bg:  rgba(16,185,129,.10);
-  --blue-bg:   rgba(59,130,246,.10);
-  --r:         18px;
-  --rsm:       12px;
-  --font:      'Inter', system-ui, sans-serif;
-  --sb:        env(safe-area-inset-bottom, 0px);
-  --st:        env(safe-area-inset-top,    0px);
+  --bg:       #0f172a;
+  --surf:     #1e293b;
+  --surf2:    #263448;
+  --border:   #334155;
+  --accent:   #f59e0b;
+  --acl:      #fcd34d;
+  --text:     #f1f5f9;
+  --muted:    #94a3b8;
+  --dim:      #475569;
+  --green:    #10b981;
+  --green-bg: rgba(16,185,129,.10);
+  --blue-bg:  rgba(59,130,246,.10);
+  --r:        18px;
+  --rsm:      12px;
+  --font:     'Inter', system-ui, sans-serif;
+  --sb:       env(safe-area-inset-bottom, 0px);
+  --st:       env(safe-area-inset-top,    0px);
 }
 
 /* ── Reset ───────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { height: 100%; }
+html, body { height: 100%; }
 body {
   font-family: var(--font);
   background: var(--bg);
   color: var(--text);
-  height: 100dvh;
-  /* PAS d'overflow:hidden ici — chaque scroll-container gère le sien */
   -webkit-tap-highlight-color: transparent;
 }
+.hidden { display: none !important; }
 
-/* ── Screens ─────────────────────────────────────────────────────────────── */
-/*
-   Chaque écran est position:fixed sur toute la fenêtre.
-   PAS d'overflow:hidden sur .screen — cela casse le scroll touch sur iOS.
-   La zone scrollable est gérée par les enfants (-scroll).
-*/
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCREENS — ARCHITECTURE SCROLL
+
+   Principe : l'écran lui-même est le conteneur scrollable (overflow-y:scroll).
+   Le header est position:sticky → il reste visible pendant le scroll.
+   Pas de flex-child qui essaie de scroller dans un parent flex → ça ne marche
+   pas sur iOS Safari. L'écran ENTIER est la zone de scroll.
+═══════════════════════════════════════════════════════════════════════════ */
+
 .screen {
   position: fixed;
   inset: 0;
-  display: flex;
-  flex-direction: column;
   opacity: 0;
   pointer-events: none;
   transition: opacity .25s ease;
+  /* Chaque écran gère son propre scroll selon son type */
 }
 .screen.active { opacity: 1; pointer-events: all; }
-.hidden { display: none !important; }
+
+/* Écrans qui scrollent intégralement */
+#screen-home,
+#screen-results,
+#screen-about {
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Écran plaques : layout fixe avec liste scrollable */
+#screen-plaques {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Écran splash : centré, pas de scroll */
+#screen-splash {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── TOPBAR ──────────────────────────────────────────────────────────────── */
+/*
+  position:sticky + top:0 → le header colle en haut
+  pendant que l'écran scroll. ✓ iOS ✓ Android
+*/
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: .875rem;
+  padding: calc(.875rem + var(--st)) 1.25rem .875rem;
+  background: var(--bg);
+}
+.topbar-results {
+  background: linear-gradient(180deg, #0d1f3c 0%, var(--bg) 100%);
+  padding-bottom: 1.25rem;
+}
+/* Dans l'écran plaques, la topbar n'est PAS dans un conteneur scrollable
+   donc sticky ne sert à rien → on la laisse en flux normal */
+#screen-plaques .topbar { position: relative; }
+
+.topbar-logo { font-size: 1rem; font-weight: 700; color: var(--accent); flex: 1; }
 
 /* ── Toast ───────────────────────────────────────────────────────────────── */
 .toast {
@@ -56,9 +104,8 @@ body {
   left: 50%; transform: translateX(-50%) translateY(10px);
   background: var(--surf2); border: 1px solid var(--border);
   color: var(--text); padding: .7rem 1.4rem;
-  border-radius: 50px; font-size: .875rem;
-  white-space: nowrap; z-index: 300;
-  opacity: 0; pointer-events: none;
+  border-radius: 50px; font-size: .875rem; white-space: nowrap;
+  z-index: 300; opacity: 0; pointer-events: none;
   transition: opacity .25s, transform .25s;
 }
 .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -67,7 +114,7 @@ body {
 .spinner {
   width: 44px; height: 44px;
   border: 3px solid var(--border); border-top-color: var(--accent);
-  border-radius: 50%; animation: spin .75s linear infinite; flex-shrink: 0;
+  border-radius: 50%; animation: spin .75s linear infinite;
 }
 .spinner-sm {
   width: 16px; height: 16px;
@@ -78,7 +125,6 @@ body {
 
 /* ── SPLASH ──────────────────────────────────────────────────────────────── */
 #screen-splash {
-  justify-content: center; align-items: center;
   background: radial-gradient(ellipse 80% 50% at 50% 0%, #1e3a8a22, transparent),
               linear-gradient(180deg, #0d1829, #0f172a);
 }
@@ -98,34 +144,11 @@ h1 {
   border: 1px solid var(--border); border-radius: var(--r);
   color: var(--text); font-family: var(--font); font-size: .95rem; cursor: pointer;
 }
-.btn-retry:active { background: var(--surf2); }
-
-/* ── TOPBAR (partagée) ───────────────────────────────────────────────────── */
-.topbar {
-  flex-shrink: 0;
-  display: flex; align-items: center; gap: .875rem;
-  padding: calc(1rem + var(--st)) 1.25rem .875rem;
-  background: var(--bg);
-}
-.topbar-logo { font-size: 1rem; font-weight: 700; color: var(--accent); }
-.topbar-results {
-  background: linear-gradient(180deg, #0d1f3c 0%, var(--bg) 100%);
-  padding-bottom: 1.25rem;
-}
-.topbar-title { flex: 1; min-width: 0; }
 
 /* ── ACCUEIL ─────────────────────────────────────────────────────────────── */
-/*
-   home-scroll = le SEUL élément qui scroll sur cet écran.
-   flex:1 + min-height:0 = contraint la hauteur à l'espace restant.
-   overflow-y:scroll = scroll natif fiable sur iOS/Android.
-*/
+/* home-scroll = padding wrapper, PAS un scroll container */
 .home-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: scroll;
-  -webkit-overflow-scrolling: touch;
-  padding: .5rem 1.25rem calc(2.5rem + var(--sb));
+  padding: .5rem 1.25rem calc(3rem + var(--sb));
   display: flex; flex-direction: column; gap: .875rem;
 }
 
@@ -135,14 +158,8 @@ h1 {
   border: 1px solid rgba(59,130,246,.2);
   border-radius: var(--r); padding: 1.5rem;
 }
-.eyebrow {
-  font-size: .7rem; text-transform: uppercase; letter-spacing: .1em;
-  color: var(--muted); margin-bottom: .3rem;
-}
-.loc-type {
-  font-size: .75rem; text-transform: uppercase; letter-spacing: .1em;
-  color: var(--accent); margin-bottom: .15rem;
-}
+.eyebrow { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: .3rem; }
+.loc-type { font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); margin-bottom: .15rem; }
 .loc-name-row { display: flex; align-items: flex-start; gap: .5rem; margin-bottom: .4rem; }
 .loc-name { font-size: 2rem; font-weight: 800; letter-spacing: -.04em; line-height: 1.1; flex: 1; word-break: break-word; }
 .loc-city { font-size: .9rem; color: var(--muted); }
@@ -152,8 +169,7 @@ h1 {
   background: rgba(255,255,255,.08); border: 1px solid var(--border);
   border-radius: 8px; color: var(--muted);
   width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
-  cursor: pointer; flex-shrink: 0; margin-top: .2rem;
-  font-size: .85rem; transition: background .15s;
+  cursor: pointer; flex-shrink: 0; margin-top: .2rem; font-size: .85rem;
 }
 .btn-edit-icon:active { background: var(--surf2); }
 
@@ -177,7 +193,6 @@ h1 {
   border: none; border-radius: var(--rsm);
   font-family: var(--font); font-size: .875rem; font-weight: 700; cursor: pointer;
 }
-.btn-edit-ok:active { background: var(--acl); }
 .btn-edit-cancel {
   padding: .7rem 1rem; background: transparent;
   border: 1px solid var(--border); border-radius: var(--rsm);
@@ -185,19 +200,14 @@ h1 {
 }
 
 /* Notice mode manuel */
-.notice {
-  padding: .75rem 1rem; background: rgba(148,163,184,.07);
-  border: 1px solid var(--border); border-radius: var(--rsm);
-  font-size: .82rem; color: var(--muted);
-}
+.notice { padding: .75rem 1rem; background: rgba(148,163,184,.07); border: 1px solid var(--border); border-radius: var(--rsm); font-size: .82rem; color: var(--muted); }
 
-/* Boutons action (rue / ville) */
+/* Boutons action rue / ville */
 .btn-action {
   display: flex; align-items: center; gap: .875rem;
   width: 100%; padding: 1.1rem;
   background: var(--surf); border: 1px solid var(--border);
-  border-radius: var(--r); color: var(--text);
-  cursor: pointer; text-align: left; transition: background .15s;
+  border-radius: var(--r); color: var(--text); cursor: pointer; text-align: left;
 }
 .btn-action:active { background: var(--surf2); }
 .ba-icon { font-size: 1.3rem; flex-shrink: 0; }
@@ -206,82 +216,45 @@ h1 {
 .ba-sub { font-size: .8rem; color: var(--muted); margin-top: .15rem; }
 .ba-arrow { color: var(--accent); font-size: 1.5rem; font-weight: 300; flex-shrink: 0; }
 
-/* Plaques */
-.plaques-loading {
-  display: flex; align-items: center; gap: .625rem;
-  padding: .875rem 1rem; background: var(--surf);
-  border: 1px solid var(--border); border-radius: var(--r);
-  font-size: .85rem; color: var(--muted);
-}
-.plaques-badge {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: .875rem 1rem;
-  background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3);
-  border-radius: var(--r);
-}
+/* Plaques badge accueil */
+.plaques-loading { display: flex; align-items: center; gap: .625rem; padding: .875rem 1rem; background: var(--surf); border: 1px solid var(--border); border-radius: var(--r); font-size: .85rem; color: var(--muted); }
+.plaques-badge { display: flex; align-items: center; justify-content: space-between; padding: .875rem 1rem; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); border-radius: var(--r); }
 .pb-left { display: flex; align-items: center; gap: .75rem; }
 .pb-label { font-size: .9rem; font-weight: 600; }
 .pb-sub { font-size: .75rem; color: var(--muted); margin-top: .1rem; }
-.btn-see {
-  padding: .5rem 1rem; background: var(--accent); color: #0f172a;
-  border: none; border-radius: var(--rsm);
-  font-family: var(--font); font-size: .85rem; font-weight: 700; cursor: pointer; flex-shrink: 0;
-}
+.btn-see { padding: .5rem 1rem; background: var(--accent); color: #0f172a; border: none; border-radius: var(--rsm); font-family: var(--font); font-size: .85rem; font-weight: 700; cursor: pointer; flex-shrink: 0; }
 .btn-see:active { background: var(--acl); }
 
+/* Version */
+.version-label { text-align: center; font-size: .7rem; color: var(--dim); padding-top: .25rem; }
+
 /* Boutons secondaires */
-.btn-ghost {
-  width: 100%; padding: .875rem;
-  background: transparent; border: 1px solid var(--border);
-  border-radius: var(--r); color: var(--muted);
-  font-family: var(--font); font-size: .9rem; cursor: pointer; transition: all .15s;
-}
+.btn-ghost { width: 100%; padding: .875rem; background: transparent; border: 1px solid var(--border); border-radius: var(--r); color: var(--muted); font-family: var(--font); font-size: .9rem; cursor: pointer; }
 .btn-ghost:active { background: var(--surf); color: var(--text); }
-.btn-round {
-  width: 40px; height: 40px; border-radius: 50%;
-  background: rgba(255,255,255,.07); border: 1px solid var(--border);
-  color: var(--text); font-size: 1rem; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
+.btn-round { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.07); border: 1px solid var(--border); color: var(--text); font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .btn-round:active { background: var(--surf2); }
 
 /* ── RÉSULTATS ────────────────────────────────────────────────────────────── */
-.res-eyebrow {
-  font-size: .7rem; text-transform: uppercase; letter-spacing: .1em;
-  color: var(--accent); margin-bottom: .2rem;
-}
+.topbar-title { flex: 1; min-width: 0; }
+.res-eyebrow { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); margin-bottom: .2rem; }
 .res-name { font-size: 1.75rem; font-weight: 800; letter-spacing: -.04em; line-height: 1.1; word-break: break-word; margin-bottom: .3rem; }
 .res-city { font-size: .83rem; color: var(--muted); }
 
-/*
-   results-scroll = zone scrollable des résultats.
-   Même principe que home-scroll.
-*/
+/* results-scroll = padding wrapper, PAS un scroll container */
 .results-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: scroll;
-  -webkit-overflow-scrolling: touch;
-  padding: 1rem 1rem calc(3rem + var(--sb));
+  padding: 1rem 1rem calc(3.5rem + var(--sb));
   display: flex; flex-direction: column; gap: 1rem;
 }
 
 /* Source badge */
-.source-badge {
-  display: flex; align-items: flex-start; gap: .5rem;
-  padding: .75rem 1rem; border-radius: var(--rsm);
-  font-size: .82rem; font-weight: 500; line-height: 1.5;
-}
+.source-badge { display: flex; align-items: flex-start; gap: .5rem; padding: .75rem 1rem; border-radius: var(--rsm); font-size: .82rem; font-weight: 500; line-height: 1.5; }
 .source-badge.ok   { background: var(--green-bg); border: 1px solid rgba(16,185,129,.3); color: var(--green); }
 .source-badge.info { background: var(--blue-bg);  border: 1px solid rgba(59,130,246,.25); color: #93c5fd; }
 .source-badge.dim  { background: rgba(148,163,184,.07); border: 1px solid var(--border); color: var(--muted); }
 
 /* Cards */
 .card { background: var(--surf); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
-.card-head {
-  display: flex; align-items: center; gap: .625rem;
-  padding: .875rem 1.25rem; border-bottom: 1px solid var(--border);
-}
+.card-head { display: flex; align-items: center; gap: .625rem; padding: .875rem 1.25rem; border-bottom: 1px solid var(--border); }
 .card-head span { font-size: 1rem; }
 .card-head h3 { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 .card-body { padding: 1.25rem; }
@@ -290,20 +263,11 @@ h1 {
 .wiki-origin { font-size: .8rem; color: var(--muted); font-style: italic; margin-bottom: .625rem; }
 .wiki-origin strong { color: var(--accent); font-style: normal; }
 .wiki-text { font-size: 1rem; line-height: 1.8; color: var(--text); }
-.local-text {
-  font-size: 1rem; line-height: 1.8; color: var(--text);
-  padding: 1rem; border-left: 3px solid var(--accent);
-  background: rgba(245,158,11,.05); border-radius: 0 var(--rsm) var(--rsm) 0;
-}
+.local-text { font-size: 1rem; line-height: 1.8; color: var(--text); padding: 1rem; border-left: 3px solid var(--accent); background: rgba(245,158,11,.05); border-radius: 0 var(--rsm) var(--rsm) 0; }
 
 /* Liens */
 .links-body { display: flex; flex-direction: column; gap: .625rem; }
-.link-row {
-  display: flex; align-items: center; gap: .75rem;
-  padding: .875rem 1rem; background: rgba(255,255,255,.03);
-  border: 1px solid var(--border); border-radius: var(--rsm);
-  text-decoration: none; color: var(--text); transition: background .15s;
-}
+.link-row { display: flex; align-items: center; gap: .75rem; padding: .875rem 1rem; background: rgba(255,255,255,.03); border: 1px solid var(--border); border-radius: var(--rsm); text-decoration: none; color: var(--text); }
 .link-row:active { background: var(--surf2); }
 .link-ico { width: 34px; height: 34px; background: var(--surf2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .9rem; flex-shrink: 0; }
 .link-body { flex: 1; min-width: 0; }
@@ -316,14 +280,8 @@ h1 {
 .nb-item { background: rgba(255,255,255,.03); border: 1px solid var(--border); border-radius: var(--rsm); padding: .875rem; }
 .nb-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .3rem; }
 .nb-value { font-size: .9rem; font-weight: 600; }
-.osm-link {
-  display: flex; align-items: center; justify-content: center; gap: .5rem;
-  padding: .875rem; background: rgba(245,158,11,.08);
-  border: 1px solid rgba(245,158,11,.25); border-radius: var(--rsm);
-  color: var(--accent); text-decoration: none; font-size: .9rem; font-weight: 500;
-}
+.osm-link { display: flex; align-items: center; justify-content: center; gap: .5rem; padding: .875rem; background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25); border-radius: var(--rsm); color: var(--accent); text-decoration: none; font-size: .9rem; font-weight: 500; }
 
-/* Bouton partager en bas */
 .btn-share-footer { margin-top: .25rem; }
 
 /* Empty state */
@@ -338,13 +296,19 @@ h1 {
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 /* ── PLAQUES ─────────────────────────────────────────────────────────────── */
+/*
+  Plaques = seul écran en flex colonne.
+  La carte est flex-shrink:0 (hauteur fixe).
+  La liste est flex:1 + overflow-y:scroll → ça marche car le parent a une
+  hauteur définie par position:fixed inset:0.
+*/
 .map-container { height: 240px; flex-shrink: 0; background: var(--surf); border-bottom: 1px solid var(--border); }
-
 .plaques-list-wrap {
   flex: 1;
-  min-height: 0;
+  min-height: 0;         /* indispensable en flex pour que le scroll marche */
   overflow-y: scroll;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 .plaque-item { border-bottom: 1px solid var(--border); }
 .plaque-item:last-child { border-bottom: none; }
@@ -366,25 +330,16 @@ h1 {
 .plaques-empty { padding: 3rem 2rem; text-align: center; color: var(--muted); font-size: .95rem; line-height: 1.7; }
 
 /* ── À PROPOS ────────────────────────────────────────────────────────────── */
+/* about-scroll = padding wrapper, PAS un scroll container */
 .about-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: scroll;
-  -webkit-overflow-scrolling: touch;
   padding: 0 1rem calc(3rem + var(--sb));
   display: flex; flex-direction: column; gap: 1rem;
 }
 .about-hero { text-align: center; padding: 1.5rem 1rem; }
 .about-icon { font-size: 3rem; margin-bottom: .5rem; filter: drop-shadow(0 0 16px rgba(245,158,11,.35)); }
-.about-title {
-  font-size: 1.7rem; font-weight: 800; letter-spacing: -.03em;
-  background: linear-gradient(135deg, var(--accent), var(--acl));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  margin-bottom: .4rem;
-}
+.about-title { font-size: 1.7rem; font-weight: 800; letter-spacing: -.03em; background: linear-gradient(135deg, var(--accent), var(--acl)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: .4rem; }
 .about-tagline { font-size: .9rem; color: var(--muted); line-height: 1.6; }
 
-/* Changelog */
 .cl-entry { padding-bottom: 1.25rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
 .cl-entry:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
 .cl-head { display: flex; align-items: center; gap: .625rem; flex-wrap: wrap; margin-bottom: .75rem; }
@@ -395,7 +350,6 @@ h1 {
 .cl-list li { font-size: .875rem; color: var(--muted); padding-left: 1.1rem; position: relative; line-height: 1.5; }
 .cl-list li::before { content: '·'; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
 
-/* Sources */
 .sources-body { display: flex; flex-direction: column; gap: .5rem; }
 .source-row { display: flex; align-items: center; gap: .75rem; padding: .875rem; background: rgba(255,255,255,.03); border: 1px solid var(--border); border-radius: var(--rsm); font-size: .875rem; color: var(--muted); text-decoration: none; }
 .source-row:active { background: var(--surf2); }
