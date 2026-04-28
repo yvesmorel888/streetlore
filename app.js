@@ -5,7 +5,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 const GEMINI_KEY = 'AIzaSyAfYRPiI9YfD2jxY9rzXmnha4RV0PXW9LQ';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ÉTAT
@@ -118,10 +118,22 @@ async function callGemini(full, city, mode='street') {
         generationConfig:{temperature:0.2,maxOutputTokens:300},
       }),
     }),15000);
-    if(!r.ok) return null;
+    if(!r.ok){
+      const err=await r.json().catch(()=>({}));
+      const msg=err?.error?.message||`HTTP ${r.status}`;
+      console.error('Gemini error:',r.status,msg);
+      toast(`⚠️ IA: ${msg.slice(0,60)}`);
+      return null;
+    }
     const data=await r.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||null;
-  } catch{return null;}
+    const text=data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||null;
+    if(!text) console.warn('Gemini: réponse vide',data);
+    return text;
+  }catch(e){
+    console.error('Gemini exception:',e);
+    toast(`⚠️ IA: ${e.message?.slice(0,60)||'erreur réseau'}`);
+    return null;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
