@@ -54,7 +54,7 @@
     </div>
     <div class="home-scroll">
 
-      <p class="version-label">v2.2 · 27/04/2026</p>
+      <p class="version-label">v2.3 · 27/04/2026</p>
 
       <div class="location-card">
         <p class="eyebrow">Vous êtes sur</p>
@@ -201,17 +201,28 @@
 
           <div class="cl-entry">
             <div class="cl-head">
-              <span class="cl-ver">2.2</span>
+              <span class="cl-ver">2.3</span>
               <span class="cl-date">27 / 04 / 2026</span>
               <span class="cl-current">Actuelle</span>
             </div>
             <ul class="cl-list">
+              <li>Synthèse IA (Google Gemini) comme source principale d'information</li>
+              <li>Wikipedia utilisé uniquement pour la photo et le lien article</li>
+              <li>4 liens systématiques : Wikipedia · Google Maps · Google · Perplexity</li>
+              <li>Fallback Wikipedia si Gemini indisponible</li>
+            </ul>
+          </div>
+
+          <div class="cl-entry">
+            <div class="cl-head">
+              <span class="cl-ver">2.2</span>
+              <span class="cl-date">27 / 04 / 2026</span>
+            </div>
+            <ul class="cl-list">
               <li>Bouton "Demander à l'IA" toujours visible dans "En savoir plus"</li>
               <li>Liens simplifiés : plus de doublons Wikipedia / Google</li>
-              <li>Pertinence Wikipedia : rejet communes et hors-sujets via description Wikidata</li>
-              <li>Contexte local filtré : supprimé si l'article concerne déjà la ville</li>
-              <li>Photos plaques : enrichissement depuis catégories Wikimedia Commons</li>
-              <li>Photos plaques : miniature Wikipedia quand lien disponible</li>
+              <li>Pertinence Wikipedia améliorée via description Wikidata</li>
+              <li>Photos plaques : enrichissement Commons + miniature Wikipedia</li>
               <li>Rayon plaques ramené à 500 m</li>
             </ul>
           </div>
@@ -269,11 +280,14 @@
       <div class="card">
         <div class="card-head"><span>🛰️</span><h3>Sources de données</h3></div>
         <div class="card-body sources-body">
+          <a href="https://aistudio.google.com" target="_blank" rel="noopener" class="source-row">
+            <span>🤖</span><span>Google Gemini · Synthèse IA</span>
+          </a>
           <a href="https://www.openstreetmap.org" target="_blank" rel="noopener" class="source-row">
             <span>🗺️</span><span>OpenStreetMap · Nominatim · Overpass</span>
           </a>
           <a href="https://fr.wikipedia.org" target="_blank" rel="noopener" class="source-row">
-            <span>📖</span><span>Wikipédia (français)</span>
+            <span>📖</span><span>Wikipédia (photo et lien article)</span>
           </a>
           <a href="https://www.wikidata.org" target="_blank" rel="noopener" class="source-row">
             <span>🔗</span><span>Wikidata · SPARQL</span>

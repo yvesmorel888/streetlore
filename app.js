@@ -1,6 +1,13 @@
 'use strict';
 
 // ═══════════════════════════════════════════════════════════════════════════
+// CONFIG IA
+// ═══════════════════════════════════════════════════════════════════════════
+
+const GEMINI_KEY = 'AIzaSyAfYRPiI9YfD2jxY9rzXmnha4RV0PXW9LQ';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ÉTAT
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -60,40 +67,6 @@ function parseStreet(full) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CLASSIFICATION
-// ═══════════════════════════════════════════════════════════════════════════
-
-const GENERIC = new Set([
-  'beau','belle','bon','bonne','grand','grande','gros','grosse','haut','haute',
-  'bas','basse','long','longue','large','vieux','vieille','nouveau','nouvelle',
-  'petit','petite','joli','jolie',
-  'amis','ami','amie','amour','bonheur','joie','espoir','rêve','paix',
-  'liberté','égalité','fraternité','solidarité','justice','progrès','avenir','gloire',
-  'fleur','fleurs','rose','roses','lilas','muguet','lavande','iris','violette',
-  'chêne','platane','tilleul','peuplier','orme','pin','sapin','hêtre','charme','acacia',
-  'bois','forêt','bosquet','prairie','pré','champ','jardin','parc',
-  'soleil','lune','étoile','vent','nuage','pluie','neige',
-  'rivière','ruisseau','source','fontaine','puits','étang','lac',
-  'rocher','roche','pierre','grès','sable','vallée','vallon','coteau','colline',
-  'moulin','moulins','four','forge','forges','église','chapelle','abbaye','temple',
-  'château','ferme','grange','mairie','école','marché','halle','halles','lavoir',
-  'aigle','lion','loup','renard','cerf','colombe','hirondelle','cygne',
-  'blanc','blanche','rouge','vert','verte','bleu','bleue','doré','dorée','noir','noire',
-  'tisserand','potier','tanneurs','tonneliers','charpentiers','maçons','cordonniers',
-  'croix','calvaire','vignes','vigne','verger',
-]);
-const STOP = new Set(['les','des','rue','avenue','boulevard','de','du','la','le','sur','sous','aux']);
-
-function classifyName(name) {
-  const words = name.toLowerCase().split(/[\s\-']+/).filter(w => w.length > 2);
-  if (!words.length) return 'unknown';
-  const gRatio = words.filter(w => GENERIC.has(w)).length / words.length;
-  if (gRatio >= 0.4) return 'generic';
-  const hasProper = name.split(/[\s\-]+/).some(w => w.length > 2 && /^[A-ZÀ-Ÿ]/.test(w) && !STOP.has(w.toLowerCase()));
-  return hasProper ? 'person' : 'concept';
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // UTILITAIRES
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -123,6 +96,35 @@ function linkRow(url,title,domain,icon){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// API — GEMINI
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function callGemini(full, city, mode='street') {
+  try {
+    let prompt;
+    if (mode==='city') {
+      prompt=`En 3 à 4 phrases en français, présente les origines et l'histoire de la ville de ${city} : son étymologie, sa fondation, son développement et ce qui la caractérise historiquement. Sois factuel et concis.`;
+    } else {
+      prompt=`En 3 à 4 phrases en français, explique l'histoire et l'origine du nom "${full}"${city?` à ${city}`:''}.`+
+        ` Concentre-toi sur la personne, l'événement ou le lieu qui a donné son nom à cette rue.`+
+        ` Si c'est une personne, précise qui elle était et son lien avec cette ville ou région.`+
+        ` Sois factuel, précis et concis. Ne décris pas la rue elle-même.`;
+    }
+    const r=await withTimeout(fetch(GEMINI_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        contents:[{parts:[{text:prompt}]}],
+        generationConfig:{temperature:0.2,maxOutputTokens:300},
+      }),
+    }),15000);
+    if(!r.ok) return null;
+    const data=await r.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||null;
+  } catch{return null;}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // API — NOMINATIM
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -131,7 +133,7 @@ async function reverseGeocode(lat,lon){
   u.searchParams.set('format','json');u.searchParams.set('lat',lat);
   u.searchParams.set('lon',lon);u.searchParams.set('zoom','18');
   u.searchParams.set('addressdetails','1');u.searchParams.set('accept-language','fr');
-  const r=await withTimeout(fetch(u,{headers:{'User-Agent':'StreetLore/2.2'}}),10000);
+  const r=await withTimeout(fetch(u,{headers:{'User-Agent':'StreetLore/2.3'}}),10000);
   if(!r.ok) throw new Error('Géocodage échoué');
   return r.json();
 }
@@ -162,17 +164,15 @@ async function getEtymology(street,lat,lon){
     const t=d.elements[0].tags;
     return{
       wikidata: t['name:etymology:wikidata']||null,
-      text:     t['name:etymology']||null,
       wikipedia:t['wikipedia']||t['name:etymology:wikipedia']||null,
     };
   }catch{return null;}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PHOTOS PLAQUES — enrichissement depuis Commons et Wikipedia
+// PHOTOS PLAQUES
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Première image d'une catégorie Wikimedia Commons
 async function commonsFirstPhoto(category){
   try{
     const cat=category.replace(/^Category:/i,'');
@@ -188,7 +188,6 @@ async function commonsFirstPhoto(category){
   }catch{return null;}
 }
 
-// Miniature Wikipedia à partir d'une URL d'article
 async function wikiThumbFromUrl(wikiUrl){
   try{
     const m=wikiUrl.match(/\/wiki\/(.+)$/);
@@ -198,29 +197,21 @@ async function wikiThumbFromUrl(wikiUrl){
   }catch{return null;}
 }
 
-// Enrichit les plaques sans photo avec Commons category ou miniature Wikipedia
 async function enrichPlaquesPhotos(list){
   const toEnrich=list.filter(p=>!p.photo&&(p._commonsCategory||p.wikiUrl));
   await Promise.allSettled(toEnrich.map(async p=>{
-    if(p._commonsCategory){
-      p.photo=await commonsFirstPhoto(p._commonsCategory);
-    }
-    if(!p.photo&&p.wikiUrl){
-      p.photo=await wikiThumbFromUrl(p.wikiUrl);
-    }
-    // Nettoyer champ interne
+    if(p._commonsCategory) p.photo=await commonsFirstPhoto(p._commonsCategory);
+    if(!p.photo&&p.wikiUrl) p.photo=await wikiThumbFromUrl(p.wikiUrl);
     delete p._commonsCategory;
   }));
-  // Nettoyer aussi les plaques qui avaient déjà une photo
   list.forEach(p=>delete p._commonsCategory);
   return list;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// API — PLAQUES
+// API — PLAQUES (500 m)
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Plaques OSM — rayon 500 m, tags étendus
 async function fetchOSMPlaques(lat,lon){
   const ql=`[out:json][timeout:10];(
     node["historic"="memorial"](around:500,${lat},${lon});
@@ -233,27 +224,20 @@ async function fetchOSMPlaques(lat,lon){
   return(d.elements||[]).map(n=>{
     const t=n.tags||{};
     const commonsVal=t.wikimedia_commons||'';
-    let photo=null;
-    let _commonsCategory=null;
+    let photo=null,_commonsCategory=null;
     if(t.image) photo=t.image;
-    else if(commonsVal&&!commonsVal.startsWith('Category:')){
+    else if(commonsVal&&!commonsVal.startsWith('Category:'))
       photo=`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(commonsVal.replace(/^File:/i,''))}?width=400`;
-    } else if(commonsVal.startsWith('Category:')){
-      _commonsCategory=commonsVal; // résolu en post-traitement
-    }
+    else if(commonsVal.startsWith('Category:'))
+      _commonsCategory=commonsVal;
     let wikiUrl=null;
     if(t.wikipedia){const[lang,...rest]=t.wikipedia.split(':');wikiUrl=`https://${lang}.wikipedia.org/wiki/${encodeURIComponent(rest.join(':'))}`;}
-    return{
-      id:`osm-${n.id}`,
-      name:t.name||t.inscription?.split('\n')[0]||'Plaque commémorative',
-      inscription:t.inscription||t.description||null,
-      lat:n.lat,lon:n.lon,photo,wikiUrl,_commonsCategory,
-      distance:haversine(lat,lon,n.lat,n.lon),
-    };
+    return{id:`osm-${n.id}`,name:t.name||t.inscription?.split('\n')[0]||'Plaque commémorative',
+      inscription:t.inscription||t.description||null,lat:n.lat,lon:n.lon,photo,wikiUrl,_commonsCategory,
+      distance:haversine(lat,lon,n.lat,n.lon)};
   });
 }
 
-// Plaques Wikidata SPARQL — rayon 500 m, avec photos P18
 async function fetchWikidataPlaques(lat,lon){
   try{
     const sparql=`
@@ -263,17 +247,15 @@ SELECT DISTINCT ?item ?label ?coord ?image ?article WHERE {
     bd:serviceParam wikibase:center "Point(${lon} ${lat})"^^geo:wktLiteral .
     bd:serviceParam wikibase:radius "0.5" .
   }
-  { ?item wdt:P31 wd:Q840490 } UNION
-  { ?item wdt:P31 wd:Q4989906 } UNION
-  { ?item wdt:P31 wd:Q5003624 } UNION
-  { ?item wdt:P31 wd:Q1288575 } UNION
+  { ?item wdt:P31 wd:Q840490 } UNION { ?item wdt:P31 wd:Q4989906 } UNION
+  { ?item wdt:P31 wd:Q5003624 } UNION { ?item wdt:P31 wd:Q1288575 } UNION
   { ?item wdt:P31 wd:Q4330316 }
   OPTIONAL { ?item rdfs:label ?label FILTER(LANG(?label) = "fr") }
   OPTIONAL { ?item wdt:P18 ?image }
   OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://fr.wikipedia.org/> . }
 } LIMIT 40`;
     const url=`https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`;
-    const r=await withTimeout(fetch(url,{headers:{'Accept':'application/sparql-results+json','User-Agent':'StreetLore/2.2'}}),14000);
+    const r=await withTimeout(fetch(url,{headers:{'Accept':'application/sparql-results+json','User-Agent':'StreetLore/2.3'}}),14000);
     if(!r.ok) return[];
     const data=await r.json();
     return(data.results?.bindings||[]).map(b=>{
@@ -286,56 +268,41 @@ SELECT DISTINCT ?item ?label ?coord ?image ?article WHERE {
         const fn=b.image.value.split('/Special:FilePath/')[1]||b.image.value.split('/').pop();
         photo=`https://commons.wikimedia.org/wiki/Special:FilePath/${fn}?width=400`;
       }
-      return{
-        id:`wd-${qid}`,
-        name:b.label?.value||'Plaque commémorative',
-        inscription:null,
-        lat:pLat,lon:pLon,photo,
-        wikiUrl:b.article?.value||null,
-        _commonsCategory:null,
-        distance:haversine(lat,lon,pLat,pLon),
-      };
+      return{id:`wd-${qid}`,name:b.label?.value||'Plaque commémorative',inscription:null,
+        lat:pLat,lon:pLon,photo,wikiUrl:b.article?.value||null,_commonsCategory:null,
+        distance:haversine(lat,lon,pLat,pLon)};
     }).filter(Boolean);
   }catch{return[];}
 }
 
 async function fetchOpenPlaques(lat,lon){
   try{
-    const d=0.0045; // ~500 m
+    const d=0.0045;
     const url=`https://openplaques.org/plaques.json?box[sw_lat]=${(lat-d).toFixed(6)}&box[sw_lng]=${(lon-d).toFixed(6)}&box[ne_lat]=${(lat+d).toFixed(6)}&box[ne_lng]=${(lon+d).toFixed(6)}`;
     const r=await withTimeout(fetch(url),8000);
     if(!r.ok) return[];
     const data=await r.json();
     return(Array.isArray(data)?data:[]).filter(p=>p.latitude&&p.longitude).map(p=>({
-      id:`op-${p.id}`,
-      name:p.lead_subject?.name||p.inscription?.split('\n')[0]||'Plaque',
-      inscription:p.inscription||null,
-      lat:parseFloat(p.latitude),lon:parseFloat(p.longitude),
-      photo:p.photos?.[0]?.large_url||null,
-      wikiUrl:null,_commonsCategory:null,
-      distance:haversine(lat,lon,parseFloat(p.latitude),parseFloat(p.longitude)),
-    }));
+      id:`op-${p.id}`,name:p.lead_subject?.name||p.inscription?.split('\n')[0]||'Plaque',
+      inscription:p.inscription||null,lat:parseFloat(p.latitude),lon:parseFloat(p.longitude),
+      photo:p.photos?.[0]?.large_url||null,wikiUrl:null,_commonsCategory:null,
+      distance:haversine(lat,lon,parseFloat(p.latitude),parseFloat(p.longitude))}));
   }catch{return[];}
 }
 
 async function fetchAllPlaques(lat,lon){
-  const[a,b,c]=await Promise.allSettled([
-    fetchOSMPlaques(lat,lon),
-    fetchWikidataPlaques(lat,lon),
-    fetchOpenPlaques(lat,lon),
-  ]);
+  const[a,b,c]=await Promise.allSettled([fetchOSMPlaques(lat,lon),fetchWikidataPlaques(lat,lon),fetchOpenPlaques(lat,lon)]);
   const list=[...(a.status==='fulfilled'?a.value:[])];
   const dedup=p=>!list.some(m=>haversine(m.lat,m.lon,p.lat,p.lon)<30);
   for(const p of(b.status==='fulfilled'?b.value:[])) if(dedup(p)) list.push(p);
   for(const p of(c.status==='fulfilled'?c.value:[])) if(dedup(p)) list.push(p);
   const sorted=list.sort((a,b)=>a.distance-b.distance);
-  // Enrichissement photos (Commons category + miniature Wikipedia)
   await enrichPlaquesPhotos(sorted);
   return sorted;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// API — WIKIDATA → Wikipedia
+// API — WIKIDATA + WIKIPEDIA (photo et lien uniquement)
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function wikidataTitle(qid){
@@ -346,10 +313,6 @@ async function wikidataTitle(qid){
   }catch{return null;}
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// API — WIKIPEDIA FR
-// ═══════════════════════════════════════════════════════════════════════════
-
 async function wikiSummary(title){
   try{
     const r=await withTimeout(fetch(`https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`),7000);
@@ -357,102 +320,65 @@ async function wikiSummary(title){
   }catch{return null;}
 }
 
-async function wikiSearch(query){
+// Recherche Wikipedia — retourne un article avec thumbnail et URL
+async function findBestWikiArticle(simple,full,city,lat,lon){
+  // 1. Étymologie OSM via Wikidata
+  if(lat&&lon){
+    const etym=await getEtymology(full,lat,lon);
+    if(etym?.wikidata){
+      const title=await wikidataTitle(etym.wikidata);
+      if(title){const w=await wikiSummary(title);if(w?.extract) return w;}
+    }
+    if(etym?.wikipedia){
+      const[lang,...rest]=etym.wikipedia.split(':');
+      if(lang==='fr'){const w=await wikiSummary(rest.join(':'));if(w?.extract) return w;}
+    }
+  }
+  // 2. Page dédiée à la rue
+  if(city){const w=await wikiSummary(`${full} (${city})`);if(w?.extract&&w.type!=='disambiguation') return w;}
+  const w2=await wikiSummary(full);
+  if(w2?.extract&&w2.type!=='disambiguation') return w2;
+  // 3. Recherche par nom simplifié
   try{
     const u=new URL('https://fr.wikipedia.org/w/api.php');
     u.searchParams.set('action','query');u.searchParams.set('list','search');
-    u.searchParams.set('srsearch',query);u.searchParams.set('format','json');
-    u.searchParams.set('origin','*');u.searchParams.set('srlimit','5');
-    const r=await withTimeout(fetch(u),7000);
+    u.searchParams.set('srsearch',simple);u.searchParams.set('format','json');
+    u.searchParams.set('origin','*');u.searchParams.set('srlimit','3');
+    const r=await withTimeout(fetch(u),6000);
     if(!r.ok) return null;
     const results=(await r.json()).query?.search??[];
     for(const res of results){
       const s=await wikiSummary(res.title);
       if(s&&s.type!=='disambiguation') return s;
     }
-    return null;
-  }catch{return null;}
+  }catch{}
+  return null;
 }
 
-// Pertinence : utilise le champ description Wikidata + analyse du texte
-// → rejette communes, groupes de musique, films, etc.
-function isRelevant(wiki){
-  if(!wiki?.extract) return false;
-  const text=(wiki.extract+' '+wiki.title).toLowerCase();
-  const desc=(wiki.description||'').toLowerCase();
+// ═══════════════════════════════════════════════════════════════════════════
+// RECHERCHE PRINCIPALE — IA + Wikipedia en parallèle
+// ═══════════════════════════════════════════════════════════════════════════
 
-  // Rejets par description Wikidata (le plus fiable)
-  const BAD_DESC=[
-    'commune','municipalité','municipality','chef-lieu','arrondissement',
-    'département','région française','canton','quartier de',
-    'groupe de musique','groupe musical','groupe de rock','groupe de pop',
-    'groupe de hip','groupe punk','groupe metal',
-    'album','single de','émission de','série télévisée','jeu vidéo',
-  ];
-  if(BAD_DESC.some(b=>desc.includes(b))) return false;
-
-  // Rejets par texte (filet de sécurité)
-  const BAD_TEXT=[
-    'groupe de musique','groupe rock','groupe pop','groupe metal',
-    'band britannique','band américain','band français',
-    'album studio','album de musique',
-    'est une commune','est une municipalité',
-  ];
-  if(BAD_TEXT.some(b=>text.includes(b))) return false;
-
-  return true;
+async function fetchStreetInfo(simple,full,city,lat,lon){
+  const[aiRes,wikiRes]=await Promise.allSettled([
+    callGemini(full,city,'street'),
+    findBestWikiArticle(simple,full,city,lat,lon),
+  ]);
+  return{
+    aiText: aiRes.status==='fulfilled'?aiRes.value:null,
+    wiki:   wikiRes.status==='fulfilled'?wikiRes.value:null,
+  };
 }
 
-// Contexte local — supprimé si l'article est déjà dédié à la ville
-// ou si la phrase ne fait que localiser sans apporter d'info
-function localContext(wiki,city){
-  if(!wiki?.extract||!city) return null;
-  const cityNorm=city.toLowerCase().replace(/-/g,' ');
-  // L'article mentionne déjà la ville dans son titre → pas besoin
-  if(wiki.title?.toLowerCase().includes(cityNorm)) return null;
-  if(!wiki.extract.toLowerCase().includes(cityNorm)) return null;
-  const sentences=wiki.extract.split(/(?<=[.!?])\s+/);
-  const rel=sentences.filter(s=>s.toLowerCase().includes(cityNorm));
-  // Filtrer les phrases purement localisantes ("est une voie du Xe…")
-  const meaningful=rel.filter(s=>
-    s.length>90&&
-    !/^[^.]+est une? (voie|rue|avenue|boulevard|place|impasse|allée|chemin)\b/i.test(s)
-  );
-  return meaningful.length?meaningful.slice(0,2).join(' '):null;
-}
-
-async function smartSearch(simple,full,city,lat,lon){
-  // Couche 1 — étymologie OSM (wikidata + tag wikipedia)
-  if(lat&&lon){
-    const etym=await getEtymology(full,lat,lon);
-    if(etym?.wikidata){
-      const title=await wikidataTitle(etym.wikidata);
-      if(title){const wiki=await wikiSummary(title);if(wiki?.extract)return{src:'wikidata',wiki,ctx:localContext(wiki,city),etymText:etym.text};}
-    }
-    if(etym?.wikipedia){
-      const[lang,...rest]=etym.wikipedia.split(':');
-      if(lang==='fr'){const wiki=await wikiSummary(rest.join(':'));if(wiki?.extract)return{src:'wikidata',wiki,ctx:localContext(wiki,city),etymText:etym.text};}
-    }
-    if(etym?.text&&!etym.wikidata) return{src:'etym-text',wiki:null,ctx:null,etymText:etym.text};
-  }
-
-  // Couche 2 — page Wikipedia dédiée à la rue ("Rue Victor Hugo (Marseille)")
-  if(city){
-    const s1=await wikiSummary(`${full} (${city})`);
-    if(s1?.extract&&s1.type!=='disambiguation') return{src:'wikipedia',wiki:s1,ctx:localContext(s1,city),etymText:null};
-  }
-  const s2=await wikiSummary(full);
-  if(s2?.extract&&s2.type!=='disambiguation') return{src:'wikipedia',wiki:s2,ctx:localContext(s2,city),etymText:null};
-
-  // Couche 3 — classification
-  const type=classifyName(simple);
-  if(type==='generic') return{src:'generic',wiki:null,ctx:null,etymText:null};
-
-  // Couche 4 — recherche Wikipedia par nom simplifié + contrôle pertinence
-  const wiki=await wikiSearch(simple);
-  if(wiki?.extract&&isRelevant(wiki)) return{src:'wikipedia',wiki,ctx:localContext(wiki,city),etymText:null};
-
-  return{src:'notfound',wiki:null,ctx:null,etymText:null};
+async function fetchCityInfo(city){
+  const[aiRes,wikiRes]=await Promise.allSettled([
+    callGemini(null,city,'city'),
+    wikiSummary(city),
+  ]);
+  return{
+    aiText: aiRes.status==='fulfilled'?aiRes.value:null,
+    wiki:   wikiRes.status==='fulfilled'?wikiRes.value:null,
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -485,10 +411,7 @@ function showStreetSelection(streets){
     const{simplified,type}=parseStreet(name);
     return`<button class="street-choice" data-full="${name.replace(/"/g,'&quot;')}">
       <span class="sc-icon">🛣️</span>
-      <span class="sc-body">
-        <span class="sc-type">${type}</span>
-        <span class="sc-name">${simplified}</span>
-      </span>
+      <span class="sc-body"><span class="sc-type">${type}</span><span class="sc-name">${simplified}</span></span>
       <span class="sc-arrow">›</span>
     </button>`;
   }).join('');
@@ -582,16 +505,16 @@ async function renderResults(type,sharedName,sharedCity){
     }
   }
 
-  // Wikipedia (asynchrone)
+  // Fetch IA + Wikipedia en parallèle
   const cacheKey=`${type}:${name}`;
   if(!state.wikiCache[cacheKey]){
     state.wikiCache[cacheKey]=isStreet
-      ?smartSearch(name,state.streetFull||name,city,state.coords?.lat,state.coords?.lon)
-      :wikiSearch(city).then(wiki=>({src:'wikipedia',wiki,ctx:null,etymText:null}));
+      ?fetchStreetInfo(name,state.streetFull||name,city,state.coords?.lat,state.coords?.lon)
+      :fetchCityInfo(city);
   }
 
   let res;
-  try{res=await state.wikiCache[cacheKey];}catch{res={src:'notfound',wiki:null};}
+  try{res=await state.wikiCache[cacheKey];}catch{res={aiText:null,wiki:null};}
   applyWikiSection(res,name,city);
 }
 
@@ -600,71 +523,45 @@ function applyWikiSection(res,name,city){
   const wikiEl=document.getElementById('wiki-content');
   const linksEl=document.getElementById('links-content');
 
-  // URL Perplexity — toujours disponible
   const streetQuery=state.streetFull?`${state.streetFull} ${city}`:`${name} ${city}`;
   const perplexityUrl=`https://www.perplexity.ai/search?q=${encodeURIComponent('Histoire de la '+streetQuery)}`;
-  const aiRow=linkRow(perplexityUrl,'Demander à l\'IA','perplexity.ai','🤖');
-
-  // Badge source
-  if(res.src==='wikidata'){badge.className='source-badge ok';badge.textContent='✓ Source certifiée — étymologie OpenStreetMap / Wikidata';}
-  else if(res.src==='wikipedia'){badge.className='source-badge info';badge.textContent='◎ Résultat Wikipedia — pertinence estimée';}
-  else if(res.src==='generic'||res.src==='notfound'){badge.className='source-badge dim';badge.textContent=res.src==='generic'?'◌ Nom d\'usage local — pas de personnage identifié':'◌ Aucune information trouvée';}
-  else badge.classList.add('hidden');
-
-  // Étymologie textuelle OSM
-  if(res.src==='etym-text'){
-    wikiEl.innerHTML=`<p class="wiki-text">${res.etymText}</p>`;
-    linksEl.innerHTML=
-      linkRow(`https://fr.wikipedia.org/w/index.php?search=${encodeURIComponent(name)}`,'Chercher sur Wikipédia','fr.wikipedia.org','📖')+
-      linkRow(`https://www.google.com/search?q=${encodeURIComponent(name+' '+city+' histoire')}`,'Rechercher sur Google','google.com','🔍')+
-      aiRow;
-    return;
-  }
-
-  // Nom générique
-  if(res.src==='generic'){
-    wikiEl.innerHTML=`<div class="empty"><p class="empty-ico">🏷️</p><p>Cette rue porte un <strong>nom d'usage local</strong> (nature, métier, qualificatif) sans personnage ou événement historique précis.<br><br>Les archives municipales de ${city||'la ville'} peuvent en retracer l'origine.</p></div>`;
-    linksEl.innerHTML=
-      linkRow(`https://www.google.com/search?q=${encodeURIComponent('archives municipales '+city+' noms rues')}`,'Archives de '+city,'google.com','🗄️')+
-      linkRow(`https://fr.wikipedia.org/w/index.php?search=${encodeURIComponent(name)}`,'Chercher sur Wikipédia','fr.wikipedia.org','📖')+
-      aiRow;
-    return;
-  }
-
-  // Rien trouvé
-  if(!res.wiki?.extract){
-    wikiEl.innerHTML=`<div class="empty"><p class="empty-ico">🔍</p><p>Aucune information trouvée pour <strong>${name}</strong>.</p></div>`;
-    linksEl.innerHTML=
-      linkRow(`https://fr.wikipedia.org/w/index.php?search=${encodeURIComponent(name)}`,'Chercher sur Wikipédia','fr.wikipedia.org','📖')+
-      linkRow(`https://www.google.com/search?q=${encodeURIComponent(name+' '+city)}`,'Rechercher sur Google','google.com','🔍')+
-      aiRow;
-    return;
-  }
-
-  // Résultat Wikipedia
-  const wiki=res.wiki;
-  const extract=wiki.extract.length>520?wiki.extract.slice(0,520).replace(/\s+\S*$/,'')+'…':wiki.extract;
-  let html='';
-  if(wiki.thumbnail?.source) html+=`<img src="${wiki.thumbnail.source}" class="wiki-thumb" alt="${wiki.title}" loading="lazy">`;
-  if(wiki.title?.toLowerCase()!==name.toLowerCase()) html+=`<p class="wiki-origin">Article : <strong>${wiki.title}</strong></p>`;
-  html+=`<p class="wiki-text">${extract}</p>`;
-  wikiEl.innerHTML=html;
-
-  // Contexte local (filtré)
-  if(res.ctx){
-    document.getElementById('local-title').textContent=`Lien avec ${city}`;
-    document.getElementById('local-content').innerHTML=`<p class="local-text">${res.ctx}</p>`;
-    document.getElementById('local-card').classList.remove('hidden');
-  }
-
-  // Liens — pas de doublon : article direct + Maps + IA
-  const wikiUrl=wiki.content_urls?.mobile?.page||wiki.content_urls?.desktop?.page||'';
   const mQ=encodeURIComponent(`${state.streetFull||name} ${city}`);
+  const gQ=encodeURIComponent(`${name} ${city} histoire`);
+
+  // Liens — toujours affichés
+  const wikiUrl=res.wiki?.content_urls?.mobile?.page||res.wiki?.content_urls?.desktop?.page||'';
   linksEl.innerHTML=
-    (wikiUrl?linkRow(wikiUrl,`${wiki.title} — Wikipédia`,'fr.wikipedia.org','📖'):
-      linkRow(`https://fr.wikipedia.org/w/index.php?search=${encodeURIComponent(name)}`,'Chercher sur Wikipédia','fr.wikipedia.org','📖'))+
+    (wikiUrl
+      ?linkRow(wikiUrl,`${res.wiki.title} — Wikipédia`,'fr.wikipedia.org','📖')
+      :linkRow(`https://fr.wikipedia.org/w/index.php?search=${encodeURIComponent(name)}`,'Chercher sur Wikipédia','fr.wikipedia.org','📖'))+
     linkRow(`https://www.google.com/maps/search/${mQ}`,'Voir sur Google Maps','maps.google.com','📍')+
-    aiRow;
+    linkRow(`https://www.google.com/search?q=${gQ}`,'Rechercher sur Google','google.com','🔍')+
+    linkRow(perplexityUrl,'Approfondir avec Perplexity','perplexity.ai','🤖');
+
+  // Contenu principal — synthèse IA
+  if(res.aiText){
+    badge.className='source-badge ai';
+    badge.textContent='🤖 Synthèse générée par IA · peut contenir des imprécisions';
+    let html='';
+    if(res.wiki?.thumbnail?.source)
+      html+=`<img src="${res.wiki.thumbnail.source}" class="wiki-thumb" alt="${name}" loading="lazy">`;
+    html+=`<p class="wiki-text">${res.aiText}</p>`;
+    wikiEl.innerHTML=html;
+  }else{
+    // Fallback si Gemini indisponible
+    badge.className='source-badge dim';
+    badge.textContent='◌ Synthèse IA indisponible — consultez les liens ci-dessous';
+    if(res.wiki?.extract){
+      const extract=res.wiki.extract.length>520?res.wiki.extract.slice(0,520).replace(/\s+\S*$/,'')+'…':res.wiki.extract;
+      let html='';
+      if(res.wiki.thumbnail?.source) html+=`<img src="${res.wiki.thumbnail.source}" class="wiki-thumb" alt="${name}" loading="lazy">`;
+      html+=`<p class="wiki-origin">Source : <strong>${res.wiki.title}</strong> — Wikipédia</p>`;
+      html+=`<p class="wiki-text">${extract}</p>`;
+      wikiEl.innerHTML=html;
+    }else{
+      wikiEl.innerHTML=`<div class="empty"><p class="empty-ico">🔍</p><p>Impossible de générer une synthèse pour <strong>${name}</strong>.<br>Consultez les liens ci-dessous.</p></div>`;
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -685,7 +582,6 @@ async function renderPlaques(){
   document.getElementById('pl-subtitle').textContent=`${state.plaques.length} trouvée${state.plaques.length>1?'s':''} · 500 m · ${state.cityName}`;
   showScreen('screen-plaques');
 
-  // Carte Leaflet
   try{
     await loadLeaflet();
     const mapEl=document.getElementById('map-container');
@@ -702,7 +598,6 @@ async function renderPlaques(){
     document.getElementById('map-container').innerHTML='<p style="color:var(--muted);padding:1rem;text-align:center;font-size:.85rem">Carte non disponible</p>';
   }
 
-  // Liste
   const list=document.getElementById('plaques-list');
   if(!state.plaques.length){list.innerHTML='<div class="plaques-empty">🏅<br><br>Aucune plaque recensée dans un rayon de 500 m.</div>';return;}
   list.innerHTML=state.plaques.map((p,i)=>{
@@ -797,8 +692,8 @@ function checkSharedUrl(){
   showScreen('screen-results');
   const cacheKey=`${type}:${q}`;
   state.wikiCache[cacheKey]=type==='street'
-    ?smartSearch(q,q,city,null,null)
-    :wikiSearch(city).then(wiki=>({src:'wikipedia',wiki,ctx:null,etymText:null}));
+    ?fetchStreetInfo(q,q,city,null,null)
+    :fetchCityInfo(city);
   state.wikiCache[cacheKey].then(res=>applyWikiSection(res,q,city)).catch(()=>{});
   return true;
 }
@@ -819,7 +714,6 @@ document.getElementById('btn-back-plaques').addEventListener('click',()=>showScr
 document.getElementById('btn-back-about').addEventListener('click',()=>showScreen('screen-home'));
 document.getElementById('btn-share').addEventListener('click',doShare);
 
-// ── Édition manuelle ─────────────────────────────────────────────────────
 document.getElementById('btn-edit').addEventListener('click',()=>{
   const f=document.getElementById('edit-form');
   const open=f.classList.toggle('open');

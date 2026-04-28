@@ -252,6 +252,7 @@ h1 {
 .source-badge.ok   { background: var(--green-bg); border: 1px solid rgba(16,185,129,.3); color: var(--green); }
 .source-badge.info { background: var(--blue-bg);  border: 1px solid rgba(59,130,246,.25); color: #93c5fd; }
 .source-badge.dim  { background: rgba(148,163,184,.07); border: 1px solid var(--border); color: var(--muted); }
+.source-badge.ai   { background: rgba(139,92,246,.1); border: 1px solid rgba(139,92,246,.3); color: #c4b5fd; }
 
 /* Cards */
 .card { background: var(--surf); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
