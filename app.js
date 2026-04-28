@@ -99,7 +99,11 @@ function linkRow(url,title,domain,icon){
 // API — GEMINI
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Dernier message d'erreur Gemini — affiché dans la carte résultat
+let _geminiError = '';
+
 async function callGemini(full, city, mode='street') {
+  _geminiError = '';
   try {
     let prompt;
     if (mode==='city') {
@@ -120,18 +124,15 @@ async function callGemini(full, city, mode='street') {
     }),15000);
     if(!r.ok){
       const err=await r.json().catch(()=>({}));
-      const msg=err?.error?.message||`HTTP ${r.status}`;
-      console.error('Gemini error:',r.status,msg);
-      toast(`⚠️ IA: ${msg.slice(0,60)}`);
+      _geminiError=err?.error?.message||`HTTP ${r.status}`;
       return null;
     }
     const data=await r.json();
     const text=data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||null;
-    if(!text) console.warn('Gemini: réponse vide',data);
+    if(!text) _geminiError='Réponse vide (candidates vides)';
     return text;
   }catch(e){
-    console.error('Gemini exception:',e);
-    toast(`⚠️ IA: ${e.message?.slice(0,60)||'erreur réseau'}`);
+    _geminiError=e.message||'erreur réseau / CORS';
     return null;
   }
 }
@@ -563,15 +564,18 @@ function applyWikiSection(res,name,city){
     // Fallback si Gemini indisponible
     badge.className='source-badge dim';
     badge.textContent='◌ Synthèse IA indisponible — consultez les liens ci-dessous';
+    const errHint=_geminiError
+      ?`<p class="gemini-debug">⚠️ Erreur IA : <code>${_geminiError}</code></p>`
+      :'';
     if(res.wiki?.extract){
       const extract=res.wiki.extract.length>520?res.wiki.extract.slice(0,520).replace(/\s+\S*$/,'')+'…':res.wiki.extract;
-      let html='';
+      let html=errHint;
       if(res.wiki.thumbnail?.source) html+=`<img src="${res.wiki.thumbnail.source}" class="wiki-thumb" alt="${name}" loading="lazy">`;
       html+=`<p class="wiki-origin">Source : <strong>${res.wiki.title}</strong> — Wikipédia</p>`;
       html+=`<p class="wiki-text">${extract}</p>`;
       wikiEl.innerHTML=html;
     }else{
-      wikiEl.innerHTML=`<div class="empty"><p class="empty-ico">🔍</p><p>Impossible de générer une synthèse pour <strong>${name}</strong>.<br>Consultez les liens ci-dessous.</p></div>`;
+      wikiEl.innerHTML=`${errHint}<div class="empty"><p class="empty-ico">🔍</p><p>Impossible de générer une synthèse pour <strong>${name}</strong>.<br>Consultez les liens ci-dessous.</p></div>`;
     }
   }
 }
