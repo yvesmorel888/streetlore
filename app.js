@@ -4,7 +4,7 @@
 // CONFIG IA
 // ═══════════════════════════════════════════════════════════════════════════
 
-const GEMINI_KEY = 'AIzaSyAfYRPiI9YfD2jxY9rzXmnha4RV0PXW9LQ';
+const GEMINI_KEY = 'AIzaSyA5BebLL7m5Q4AIUDrw9FMhFb_C4BIINe4';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
 
 // ═══════════════════════════════════════════════════════════════════════════
