@@ -4,8 +4,8 @@
 // CONFIG IA
 // ═══════════════════════════════════════════════════════════════════════════
 
-const GEMINI_KEY = 'AIzaSyA5BebLL7m5Q4AIUDrw9FMhFb_C4BIINe4';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
+const GROQ_KEY = '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';
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ÉTAT
@@ -99,10 +99,10 @@ function linkRow(url,title,domain,icon){
 // API — GEMINI
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Dernier message d'erreur Gemini — affiché dans la carte résultat
+// Dernier message d'erreur IA — affiché dans la carte résultat
 let _geminiError = '';
 
-async function callGemini(full, city, mode='street') {
+async function callGroq(full, city, mode='street') {
   _geminiError = '';
   try {
     let prompt;
@@ -114,12 +114,14 @@ async function callGemini(full, city, mode='street') {
         ` Si c'est une personne, précise qui elle était et son lien avec cette ville ou région.`+
         ` Sois factuel, précis et concis. Ne décris pas la rue elle-même.`;
     }
-    const r=await withTimeout(fetch(GEMINI_URL,{
+    const r=await withTimeout(fetch(GROQ_URL,{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},
       body:JSON.stringify({
-        contents:[{parts:[{text:prompt}]}],
-        generationConfig:{temperature:0.2,maxOutputTokens:300},
+        model:'llama-3.1-8b-instant',
+        messages:[{role:'user',content:prompt}],
+        temperature:0.2,
+        max_tokens:300,
       }),
     }),15000);
     if(!r.ok){
@@ -128,8 +130,8 @@ async function callGemini(full, city, mode='street') {
       return null;
     }
     const data=await r.json();
-    const text=data.candidates?.[0]?.content?.parts?.[0]?.text?.trim()||null;
-    if(!text) _geminiError='Réponse vide (candidates vides)';
+    const text=data.choices?.[0]?.message?.content?.trim()||null;
+    if(!text) _geminiError='Réponse vide';
     return text;
   }catch(e){
     _geminiError=e.message||'erreur réseau / CORS';
@@ -374,7 +376,7 @@ async function findBestWikiArticle(simple,full,city,lat,lon){
 
 async function fetchStreetInfo(simple,full,city,lat,lon){
   const[aiRes,wikiRes]=await Promise.allSettled([
-    callGemini(full,city,'street'),
+    callGroq(full,city,'street'),
     findBestWikiArticle(simple,full,city,lat,lon),
   ]);
   return{
@@ -385,7 +387,7 @@ async function fetchStreetInfo(simple,full,city,lat,lon){
 
 async function fetchCityInfo(city){
   const[aiRes,wikiRes]=await Promise.allSettled([
-    callGemini(null,city,'city'),
+    callGroq(null,city,'city'),
     wikiSummary(city),
   ]);
   return{
