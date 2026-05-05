@@ -107,20 +107,25 @@ async function callGroq(full, city, mode='street') {
   try {
     let prompt;
     if (mode==='city') {
-      prompt=`En 3 à 4 phrases en français, présente les origines et l'histoire de la ville de ${city} : son étymologie, sa fondation, son développement et ce qui la caractérise historiquement. Sois factuel et concis.`;
+      prompt=`En 3 à 4 phrases en français, présente les origines et l'histoire de la ville de ${city} : son étymologie, sa fondation et ce qui la caractérise historiquement.`+
+        ` Ne cite que des faits certains. Si une information est incertaine, signale-le explicitement. Sois factuel et concis.`;
     } else {
-      prompt=`En 3 à 4 phrases en français, explique l'histoire et l'origine du nom "${full}"${city?` à ${city}`:''}.`+
-        ` Concentre-toi sur la personne, l'événement ou le lieu qui a donné son nom à cette rue.`+
-        ` Si c'est une personne, précise qui elle était et son lien avec cette ville ou région.`+
-        ` Sois factuel, précis et concis. Ne décris pas la rue elle-même.`;
+      prompt=`En 2 à 4 phrases en français, explique l'origine du nom "${full}"${city?` à ${city}`:''}.`+
+        ` Si c'est une personne : qui était-elle, quelle est sa biographie certaine, quel est son lien avec cette ville ou région ?`+
+        ` Si tu n'es pas certain de l'identité ou de l'histoire, dis-le explicitement plutôt que de supposer.`+
+        ` Si l'origine est inconnue ou douteuse, indique-le honnêtement.`+
+        ` Ne décris pas la rue elle-même. Ne présente jamais une hypothèse comme un fait établi.`;
     }
     const r=await withTimeout(fetch(GROQ_URL,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},
       body:JSON.stringify({
         model:'llama-3.1-8b-instant',
-        messages:[{role:'user',content:prompt}],
-        temperature:0.2,
+        messages:[
+          {role:'system',content:'Tu es un assistant historique rigoureux. Tu ne mentionnes que des faits que tu connais avec certitude. Si tu n\'es pas sûr d\'une information, tu l\'indiques explicitement ("l\'origine exacte est incertaine", "on ne sait pas avec certitude", etc.). Tu ne complètes jamais une lacune de connaissance par une supposition présentée comme un fait.'},
+          {role:'user',content:prompt}
+        ],
+        temperature:0.1,
         max_tokens:300,
       }),
     }),15000);
@@ -556,7 +561,7 @@ function applyWikiSection(res,name,city){
   // Contenu principal — synthèse IA
   if(res.aiText){
     badge.className='source-badge ai';
-    badge.textContent='🤖 Synthèse générée par IA · peut contenir des imprécisions';
+    badge.textContent='🤖 Synthèse IA (Llama 3.1) · peut contenir des erreurs factuelles — vérifiez avec les liens ci-dessous';
     let html='';
     if(res.wiki?.thumbnail?.source)
       html+=`<img src="${res.wiki.thumbnail.source}" class="wiki-thumb" alt="${name}" loading="lazy">`;
