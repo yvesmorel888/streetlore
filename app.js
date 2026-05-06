@@ -24,6 +24,7 @@ const state = {
   manualEdit:    false,
   leafletLoaded: false,
   mapInstance:   null,
+  nearbyStreets: [],
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -120,12 +121,12 @@ async function callGroq(full, city, mode='street') {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},
       body:JSON.stringify({
-        model:'llama-3.1-8b-instant',
+        model:'llama-3.3-70b-versatile',
         messages:[
-          {role:'system',content:'Tu es un assistant historique rigoureux. Tu ne mentionnes que des faits que tu connais avec certitude. Si tu n\'es pas sûr d\'une information, tu l\'indiques explicitement ("l\'origine exacte est incertaine", "on ne sait pas avec certitude", etc.). Tu ne complètes jamais une lacune de connaissance par une supposition présentée comme un fait.'},
+          {role:'system',content:'Tu es un assistant historique précis. Pour les faits bien établis (personnages historiques connus, événements documentés), réponds avec confiance. Pour les détails incertains ou les figures obscures, signale l\'incertitude ("l\'origine exacte est incertaine", "probablement", etc.). Ne présente jamais une supposition comme un fait avéré, mais ne refuse pas de répondre quand la réponse est bien connue.'},
           {role:'user',content:prompt}
         ],
-        temperature:0.1,
+        temperature:0.2,
         max_tokens:300,
       }),
     }),15000);
@@ -464,6 +465,9 @@ function renderHome(){
   document.getElementById('manual-notice').classList.add('hidden');
   document.getElementById('plaques-badge').classList.add('hidden');
   document.getElementById('plaques-loading').classList.remove('hidden');
+  const btnChange=document.getElementById('btn-change-street');
+  if(state.nearbyStreets.length>1) btnChange.classList.remove('hidden');
+  else btnChange.classList.add('hidden');
   showScreen('screen-home');
 
   fetchAllPlaques(state.coords.lat,state.coords.lon).then(pl=>{
@@ -676,7 +680,8 @@ async function locateAndLoad(){
 
         splashText('Vérification des rues à proximité…');
         const nearby=await fetchNearbyStreets(lat,lon);
-        const all=[...new Set([road,...nearby])].filter(Boolean);
+        const all=[...new Set([road,...nearby])].filter(Boolean).slice(0,5);
+        state.nearbyStreets=all;
 
         if(all.length>1){
           showStreetSelection(all);
@@ -727,7 +732,10 @@ function checkSharedUrl(){
 
 document.getElementById('btn-retry').addEventListener('click',locateAndLoad);
 document.getElementById('btn-relocate').addEventListener('click',locateAndLoad);
-document.getElementById('btn-back-select').addEventListener('click',locateAndLoad);
+document.getElementById('btn-back-select').addEventListener('click',()=>{
+  if(state.nominatim) showScreen('screen-home'); else locateAndLoad();
+});
+document.getElementById('btn-change-street').addEventListener('click',()=>showStreetSelection(state.nearbyStreets));
 document.getElementById('btn-street').addEventListener('click',()=>renderResults('street'));
 document.getElementById('btn-city').addEventListener('click',()=>renderResults('city'));
 document.getElementById('btn-plaques').addEventListener('click',renderPlaques);
