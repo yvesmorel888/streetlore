@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulateur ROI Apprentissage — Sully Business School</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+
+    body { margin: 0; background: #f1f5f9; }
+
+    .header-gradient {
+      background: linear-gradient(135deg, #0c1f4d 0%, #1e3799 60%, #0c2461 100%);
+    }
+
+    .impact-gradient {
+      background: linear-gradient(135deg, #0c2461 0%, #1e3799 50%, #0c2461 100%);
+    }
+
+    /* Range slider */
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #e2e8f0;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #1e3799;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(30,55,153,0.4);
+      transition: transform 0.15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    input[type=range]::-moz-range-thumb {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #1e3799; cursor: pointer; border: none;
+    }
+
+    .card { background: #fff; border-radius: 16px; border: 1px solid #e8eef5; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+
+    .badge-age {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .formation-btn {
+      border: 2px solid #e2e8f0;
+      border-radius: 14px;
+      background: #fff;
+      cursor: pointer;
+      text-align: left;
+      transition: all .18s;
+      padding: 14px 12px;
+    }
+    .formation-btn:hover { border-color: #93aede; transform: translateY(-1px); }
+    .formation-btn.active {
+      border-color: #1e3799;
+      background: #1e3799;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(30,55,153,.3);
+    }
+
+    .year-btn {
+      flex: 1;
+      padding: 11px 8px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all .18s;
+    }
+    .year-btn.active { background: #1e3799; color: #fff; box-shadow: 0 3px 10px rgba(30,55,153,.3); }
+    .year-btn:not(.active) { background: #f1f5f9; color: #64748b; }
+    .year-btn:not(.active):hover { background: #e2e8f0; }
+
+    .bar-bg { height: 12px; border-radius: 6px; background: #e2e8f0; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 6px; transition: width .7s cubic-bezier(.4,0,.2,1); }
+
+    .glow-green { color: #059669; }
+    .glow-red { color: #dc2626; }
+
+    .pulse-soft {
+      animation: softPulse 3s ease-in-out infinite;
+    }
+    @keyframes softPulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: .88; }
+    }
+
+    table { border-collapse: collapse; width: 100%; }
+    th, td { padding: 10px 8px; text-align: left; font-size: 14px; }
+    thead th { border-bottom: 2px solid #e8eef5; color: #64748b; font-weight: 500; }
+    tbody tr { border-bottom: 1px solid #f1f5f9; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr.highlight-row { background: #eff6ff; }
+    tbody tr.highlight-row-green { background: #f0fdf4; }
+    .text-right { text-align: right; }
+    .font-mono { font-family: 'SF Mono', 'Fira Mono', monospace; }
+
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white; }
+      .card { box-shadow: none; border: 1px solid #ccc; }
+    }
+
+    @media (max-width: 768px) {
+      .grid-inputs { grid-template-columns: 1fr; }
+      .formation-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+// ── CONSTANTES ─────────────────────────────────────────────────────────────
+
+const SMIC = { monthly: 1823.03, hourly: 12.02 };
+SMIC.annual = SMIC.monthly * 12;
+
+const BASE_H = 1607;
+const EXAM_H = 35;
+
+const FORMATIONS = [
+  { id: 'bts',      label: 'BTS',      level: 'Niveau 5', icon: '📘', hours: 450, stateAid: 4500, sullyFee: 0   },
+  { id: 'bachelor', label: 'Bachelor', level: 'Niveau 6', icon: '🎓', hours: 500, stateAid: 2000, sullyFee: 750 },
+  { id: 'mastere',  label: 'Mastère',  level: 'Niveau 7', icon: '🏆', hours: 600, stateAid: 2000, sullyFee: 750 },
+];
+
+const CHARGES = { app: 0.02, sal: 0.07 };
+
+// ── CALCULS ─────────────────────────────────────────────────────────────────
+
+function getPct(age, yr) {
+  if (age >= 26) return 1.00;
+  if (age >= 21) return yr === 1 ? 0.53 : 0.61;
+  return yr === 1 ? 0.43 : 0.51;
+}
+
+function ageLabel(age) {
+  if (age >= 26) return { text: '26 ans et +', cls: 'bg-purple-100 text-purple-700' };
+  if (age >= 21) return { text: '21 – 25 ans',  cls: 'bg-blue-100 text-blue-700'   };
+  return          { text: '18 – 20 ans',  cls: 'bg-emerald-100 text-emerald-700' };
+}
+
+function compute(fId, age, yr) {
+  const f = FORMATIONS.find(x => x.id === fId);
+  const realH   = BASE_H - (f.hours + EXAM_H);
+  const pct     = getPct(age, yr);
+  const appMonthly  = SMIC.monthly * pct;
+  const appAnnual   = appMonthly * 12;
+  const appCost     = appAnnual * (1 + CHARGES.app) + f.sullyFee - f.stateAid;
+  const hourlyReal  = appCost / realH;
+  const etpMonthly  = ((hourlyReal * BASE_H) / (1 + CHARGES.sal)) / 12;
+
+  const smicCost    = SMIC.annual * (1 + CHARGES.sal);
+  const smicHourly  = smicCost / BASE_H;
+  const economy     = smicCost - appCost;
+  const economyPct  = (economy / smicCost) * 100;
+
+  return {
+    f, realH, pct, appMonthly, appAnnual, appCost,
+    hourlyReal, etpMonthly, smicCost, smicHourly,
+    economy, economyPct,
+    presencePct: (realH / BASE_H) * 100,
+  };
+}
+
+// ── FORMATTERS ───────────────────────────────────────────────────────────────
+
+const fr2 = n => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+const fr0 = n => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n);
+const eur  = n => `${fr2(n)} €`;
+const eur0 = n => `${fr0(n)} €`;
+
+// ── COMPOSANTS ───────────────────────────────────────────────────────────────
+
+function FormationPicker({ value, onChange }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
+      {FORMATIONS.map(f => (
+        <button
+          key={f.id}
+          className={`formation-btn ${value === f.id ? 'active' : ''}`}
+          onClick={() => onChange(f.id)}
+        >
+          <div style={{ fontSize: '22px', marginBottom: '4px' }}>{f.icon}</div>
+          <div style={{ fontWeight: 700, fontSize: '16px' }}>{f.label}</div>
+          <div style={{ fontSize: '11px', opacity: .7, marginTop: '2px' }}>{f.level}</div>
+          <div style={{ fontSize: '11px', marginTop: '6px', opacity: .8 }}>{f.hours}h école/an</div>
+          <div style={{ fontSize: '11px', marginTop: '3px', color: value === f.id ? '#86efac' : '#059669', fontWeight: 600 }}>
+            Aide État {eur0(f.stateAid)}
+          </div>
+          {f.sullyFee > 0
+            ? <div style={{ fontSize: '11px', color: value === f.id ? '#fcd34d' : '#d97706' }}>
+                Sully +{eur0(f.sullyFee)}
+              </div>
+            : <div style={{ fontSize: '11px', color: value === f.id ? '#86efac' : '#059669' }}>
+                Sully inclus
+              </div>
+          }
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function AgePicker({ value, onChange }) {
+  const lbl = ageLabel(value);
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '28px', fontWeight: 800, color: '#0f172a' }}>{value} ans</span>
+          <span className={`badge-age ${lbl.cls}`}>{lbl.text}</span>
+        </div>
+      </div>
+      <input
+        type="range" min={18} max={30} value={value}
+        onChange={e => onChange(+e.target.value)}
+      />
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+        <span>18</span><span>21</span><span>26</span><span>30</span>
+      </div>
+    </div>
+  );
+}
+
+function YearPicker({ value, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: '10px' }}>
+      {[1,2].map(yr => (
+        <button
+          key={yr}
+          className={`year-btn ${value === yr ? 'active' : ''}`}
+          onClick={() => onChange(yr)}
+        >
+          {yr === 1 ? '1ère Année' : '2ème Année'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PresenceBar({ pct, realH }) {
+  return (
+    <div className="card" style={{ padding: '20px' }}>
+      <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '14px' }}>
+        Temps de Présence Réelle
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px', color: '#475569' }}>
+            <span>Absence école : <strong style={{ color: '#ef4444' }}>{BASE_H - realH}h</strong></span>
+            <span>Présence effective : <strong style={{ color: '#1e3799' }}>{realH}h</strong></span>
+          </div>
+          <div className="bar-bg">
+            <div className="bar-fill" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#1e3799,#3b5bdb)' }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+            <span>0h</span><span>Base légale {BASE_H}h</span>
+          </div>
+        </div>
+        <div style={{ textAlign: 'center', background: '#eff6ff', borderRadius: '12px', padding: '10px 14px', minWidth: '72px' }}>
+          <div style={{ fontSize: '22px', fontWeight: 800, color: '#1e3799' }}>{pct.toFixed(0)}%</div>
+          <div style={{ fontSize: '11px', color: '#6080c4' }}>présent</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ComparisonTable({ r }) {
+  return (
+    <div className="card" style={{ padding: '20px', overflowX: 'auto' }}>
+      <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '14px' }}>
+        Comparaison des Coûts
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Indicateur</th>
+            <th className="text-right" style={{ color: '#475569' }}>Salarié 35h (SMIC)</th>
+            <th className="text-right" style={{ color: '#1e3799' }}>Apprenti Sully</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style={{ color: '#64748b' }}>Salaire brut mensuel</td>
+            <td className="text-right font-mono" style={{ color: '#334155' }}>{eur(SMIC.monthly)}</td>
+            <td className="text-right font-mono" style={{ color: '#1e3799', fontWeight: 600 }}>{eur(r.appMonthly)}</td>
+          </tr>
+          <tr>
+            <td style={{ color: '#64748b' }}>Salaire brut annuel</td>
+            <td className="text-right font-mono" style={{ color: '#334155' }}>{eur(SMIC.annual)}</td>
+            <td className="text-right font-mono" style={{ color: '#1e3799', fontWeight: 600 }}>{eur(r.appAnnual)}</td>
+          </tr>
+          <tr>
+            <td style={{ color: '#64748b' }}>Charges patronales</td>
+            <td className="text-right" style={{ color: '#334155' }}>7 %</td>
+            <td className="text-right" style={{ color: '#059669', fontWeight: 600 }}>2 %</td>
+          </tr>
+          <tr>
+            <td style={{ color: '#64748b' }}>Participation Sully</td>
+            <td className="text-right" style={{ color: '#94a3b8' }}>—</td>
+            <td className="text-right font-mono" style={{ color: r.f.sullyFee > 0 ? '#d97706' : '#059669', fontWeight: 600 }}>
+              {r.f.sullyFee > 0 ? `+ ${eur(r.f.sullyFee)}` : '✓ Gratuit'}
+            </td>
+          </tr>
+          <tr>
+            <td style={{ color: '#64748b' }}>Aide de l'État</td>
+            <td className="text-right" style={{ color: '#94a3b8' }}>—</td>
+            <td className="text-right font-mono" style={{ color: '#059669', fontWeight: 600 }}>− {eur(r.f.stateAid)}</td>
+          </tr>
+          <tr className="highlight-row">
+            <td style={{ fontWeight: 700, color: '#1e293b' }}>Coût total annuel employeur</td>
+            <td className="text-right font-mono" style={{ fontWeight: 700, color: '#1e293b' }}>{eur(r.smicCost)}</td>
+            <td className="text-right font-mono" style={{ fontWeight: 700, color: '#1e3799' }}>{eur(r.appCost)}</td>
+          </tr>
+          <tr>
+            <td style={{ color: '#64748b' }}>Heures de présence effectives</td>
+            <td className="text-right font-mono" style={{ color: '#334155' }}>{BASE_H} h</td>
+            <td className="text-right font-mono" style={{ color: '#1e3799', fontWeight: 600 }}>{r.realH} h</td>
+          </tr>
+          <tr className="highlight-row-green">
+            <td style={{ fontWeight: 700, color: '#1e293b' }}>Coût horaire réel</td>
+            <td className="text-right font-mono" style={{ fontWeight: 700, color: '#1e293b' }}>{eur(r.smicHourly)} / h</td>
+            <td className="text-right font-mono" style={{ fontWeight: 700, color: r.hourlyReal < r.smicHourly ? '#059669' : '#dc2626' }}>
+              {eur(r.hourlyReal)} / h
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function EconomyCards({ r }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      <div className="card" style={{ padding: '18px', textAlign: 'center' }}>
+        <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>
+          Économie Annuelle
+        </div>
+        <div style={{ fontSize: '26px', fontWeight: 800, color: r.economy > 0 ? '#059669' : '#dc2626' }}>
+          {r.economy > 0 ? '+' : ''}{eur0(r.economy)}
+        </div>
+        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>vs. salarié SMIC</div>
+      </div>
+      <div className="card" style={{ padding: '18px', textAlign: 'center' }}>
+        <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>
+          Réduction de Coût
+        </div>
+        <div style={{ fontSize: '26px', fontWeight: 800, color: r.economyPct > 0 ? '#059669' : '#dc2626' }}>
+          {r.economyPct > 0 ? '−' : '+'}{Math.abs(r.economyPct).toFixed(1)} %
+        </div>
+        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>par rapport au SMIC</div>
+      </div>
+    </div>
+  );
+}
+
+function CostBars({ r }) {
+  const max = Math.max(r.smicCost, Math.max(0, r.appCost)) * 1.08;
+  const wSmic = (r.smicCost / max) * 100;
+  const wApp  = (Math.max(0, r.appCost) / max) * 100;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div className="card" style={{ padding: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' }}>
+          <span style={{ color: '#475569' }}>Salarié 35h (SMIC)</span>
+          <span style={{ fontWeight: 700, color: '#1e293b', fontFamily: 'monospace' }}>{eur0(r.smicCost)}</span>
+        </div>
+        <div className="bar-bg">
+          <div className="bar-fill" style={{ width: `${wSmic}%`, background: '#94a3b8' }} />
+        </div>
+      </div>
+      <div className="card" style={{ padding: '16px', border: '1px solid #bbf7d0', background: '#f0fdf4' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' }}>
+          <span style={{ color: '#166534' }}>Apprenti Sully ({r.f.label})</span>
+          <span style={{ fontWeight: 700, color: '#166534', fontFamily: 'monospace' }}>{eur0(r.appCost)}</span>
+        </div>
+        <div className="bar-bg">
+          <div className="bar-fill" style={{ width: `${wApp}%`, background: 'linear-gradient(90deg,#059669,#10b981)' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ImpactMessage({ r }) {
+  const ratio = (r.etpMonthly / SMIC.monthly * 100).toFixed(0);
+  return (
+    <div className="impact-gradient pulse-soft" style={{ borderRadius: '18px', padding: '24px 28px', color: '#fff' }}>
+      <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+        <div style={{ fontSize: '36px', lineHeight: 1 }}>💡</div>
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: '8px' }}>
+            Message d'Impact — Méthode Sully 2026/2027
+          </div>
+          <p style={{ fontSize: '16px', lineHeight: 1.7, margin: 0 }}>
+            Recruter ce profil <strong>{r.f.label}</strong> Sully vous revient à payer un temps plein au salaire brut de{' '}
+            <span style={{ fontSize: '28px', fontWeight: 800, color: '#fde047', whiteSpace: 'nowrap' }}>
+              {eur(r.etpMonthly)} / mois
+            </span>
+            {', '}soit l'équivalent de{' '}
+            <span style={{ fontWeight: 700, color: '#fde047' }}>{ratio} % du SMIC</span>
+            {' '}pour <strong>{r.realH} heures</strong> de présence productive annuelle.
+          </p>
+          <div style={{ marginTop: '10px', fontSize: '12px', color: '#93c5fd' }}>
+            Base : {r.realH}h présence réelle · Charges app. 2% · SMIC 2026 : {eur(SMIC.monthly)}/mois
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── APP PRINCIPALE ────────────────────────────────────────────────────────────
+
+function App() {
+  const [formation, setFormation] = useState('bts');
+  const [age,       setAge      ] = useState(22);
+  const [yr,        setYr       ] = useState(1);
+
+  const r = useMemo(() => compute(formation, age, yr), [formation, age, yr]);
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#f1f5f9' }}>
+
+      {/* ── HEADER ── */}
+      <header className="header-gradient" style={{ padding: '28px 20px 24px', color: '#fff' }}>
+        <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: '4px' }}>
+              Sully Business School — Outil Conseillers Formation
+            </div>
+            <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 800, lineHeight: 1.2 }}>Simulateur ROI Apprentissage</h1>
+            <p style={{ margin: '6px 0 0', fontSize: '14px', color: '#bfdbfe' }}>Démonstration financière de la valeur de l'alternance · Référentiel 2026/2027</p>
+          </div>
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ fontSize: '11px', color: '#93c5fd' }}>SMIC 2026</div>
+            <div style={{ fontSize: '22px', fontWeight: 800, color: '#fde047' }}>{eur(SMIC.monthly)}</div>
+            <div style={{ fontSize: '11px', color: '#93c5fd' }}>brut / mois · {fr2(SMIC.hourly)} €/h</div>
+          </div>
+        </div>
+      </header>
+
+      {/* ── MAIN ── */}
+      <main style={{ maxWidth: '960px', margin: '0 auto', padding: '24px 16px 40px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '20px', alignItems: 'start' }}>
+
+          {/* ── COLONNE GAUCHE : INPUTS ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+            {/* Formation */}
+            <div className="card" style={{ padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#eff6ff', color: '#1e3799', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800 }}>1</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '.06em' }}>Formation</span>
+              </div>
+              <FormationPicker value={formation} onChange={setFormation} />
+            </div>
+
+            {/* Âge */}
+            <div className="card" style={{ padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#eff6ff', color: '#1e3799', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800 }}>2</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '.06em' }}>Âge de l'Apprenti</span>
+              </div>
+              <AgePicker value={age} onChange={setAge} />
+            </div>
+
+            {/* Année */}
+            <div className="card" style={{ padding: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#eff6ff', color: '#1e3799', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800 }}>3</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '.06em' }}>Année de Contrat</span>
+              </div>
+              <YearPicker value={yr} onChange={setYr} />
+            </div>
+
+            {/* Récapitulatif */}
+            <div style={{ background: '#1e3799', borderRadius: '16px', padding: '18px', color: '#fff' }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '12px' }}>
+                Paramètres Actuels
+              </div>
+              {[
+                ['Formation',        r.f.label],
+                ['Grille salariale', `${Math.round(r.pct * 100)} % du SMIC`],
+                ['Salaire brut/mois', eur(r.appMonthly)],
+                ['Heures présence',  `${r.realH} h / an`],
+                ['Coût horaire réel', `${eur(r.hourlyReal)} / h`],
+              ].map(([k, v]) => (
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
+                  <span style={{ color: '#93c5fd' }}>{k}</span>
+                  <span style={{ fontWeight: 700, color: k === 'Salaire brut/mois' ? '#fde047' : '#fff' }}>{v}</span>
+                </div>
+              ))}
+            </div>
+
+          </div>
+
+          {/* ── COLONNE DROITE : RÉSULTATS ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <PresenceBar pct={r.presencePct} realH={r.realH} />
+            <ComparisonTable r={r} />
+            <EconomyCards r={r} />
+            <CostBars r={r} />
+            <ImpactMessage r={r} />
+
+            {/* Bouton impression */}
+            <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => window.print()}
+                style={{ padding: '9px 18px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                🖨️ Imprimer / Exporter PDF
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </main>
+
+      {/* ── FOOTER ── */}
+      <footer style={{ textAlign: 'center', padding: '16px', fontSize: '12px', color: '#94a3b8', borderTop: '1px solid #e2e8f0', background: '#fff' }}>
+        <strong>Sully Business School</strong> · Simulateur ROI Apprentissage 2026/2027 ·
+        SMIC {eur(SMIC.monthly)}/mois · Base légale {BASE_H}h/an · Données indicatives, hors cas particuliers
+      </footer>
+
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
