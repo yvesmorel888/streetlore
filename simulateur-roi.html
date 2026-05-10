@@ -76,25 +76,23 @@
       box-shadow: 0 4px 16px rgba(30,55,153,.3);
     }
 
-    .year-btn {
+    .toggle-btn {
       flex: 1;
       padding: 11px 8px;
       border-radius: 12px;
       border: none;
       cursor: pointer;
       font-weight: 600;
-      font-size: 14px;
+      font-size: 13px;
       transition: all .18s;
+      line-height: 1.3;
     }
-    .year-btn.active { background: #1e3799; color: #fff; box-shadow: 0 3px 10px rgba(30,55,153,.3); }
-    .year-btn:not(.active) { background: #f1f5f9; color: #64748b; }
-    .year-btn:not(.active):hover { background: #e2e8f0; }
+    .toggle-btn.active { background: #1e3799; color: #fff; box-shadow: 0 3px 10px rgba(30,55,153,.3); }
+    .toggle-btn:not(.active) { background: #f1f5f9; color: #64748b; }
+    .toggle-btn:not(.active):hover { background: #e2e8f0; }
 
     .bar-bg { height: 12px; border-radius: 6px; background: #e2e8f0; overflow: hidden; }
     .bar-fill { height: 100%; border-radius: 6px; transition: width .7s cubic-bezier(.4,0,.2,1); }
-
-    .glow-green { color: #059669; }
-    .glow-red { color: #dc2626; }
 
     .pulse-soft {
       animation: softPulse 3s ease-in-out infinite;
@@ -141,10 +139,16 @@ const BASE_H = 1607;
 const EXAM_H = 35;
 
 const FORMATIONS = [
-  { id: 'bts',      label: 'BTS',      level: 'Niveau 5', icon: '📘', hours: 450, stateAid: 4500, sullyFee: 0   },
-  { id: 'bachelor', label: 'Bachelor', level: 'Niveau 6', icon: '🎓', hours: 500, stateAid: 2000, sullyFee: 750 },
-  { id: 'mastere',  label: 'Mastère',  level: 'Niveau 7', icon: '🏆', hours: 600, stateAid: 2000, sullyFee: 750 },
+  { id: 'bts',      label: 'BTS',      level: 'Niveau 5', icon: '📘', hours: 450, sullyFee: 0   },
+  { id: 'bachelor', label: 'Bachelor', level: 'Niveau 6', icon: '🎓', hours: 500, sullyFee: 750 },
+  { id: 'mastere',  label: 'Mastère',  level: 'Niveau 7', icon: '🏆', hours: 600, sullyFee: 750 },
 ];
+
+// Aides de l'État selon taille entreprise
+const STATE_AID = {
+  small: { bts: 4500, bachelor: 2000, mastere: 2000 }, // < 250 salariés
+  big:   { bts: 1500, bachelor: 750,  mastere: 750  }, // >= 250 salariés
+};
 
 const CHARGES = { app: 0.02, sal: 0.07 };
 
@@ -162,13 +166,16 @@ function ageLabel(age) {
   return          { text: '18 – 20 ans',  cls: 'bg-emerald-100 text-emerald-700' };
 }
 
-function compute(fId, age, yr) {
-  const f = FORMATIONS.find(x => x.id === fId);
-  const realH   = BASE_H - (f.hours + EXAM_H);
-  const pct     = getPct(age, yr);
+function compute(fId, age, yr, bigCompany) {
+  const f        = FORMATIONS.find(x => x.id === fId);
+  const aidMap   = bigCompany ? STATE_AID.big : STATE_AID.small;
+  const stateAid = aidMap[fId];
+
+  const realH       = BASE_H - (f.hours + EXAM_H);
+  const pct         = getPct(age, yr);
   const appMonthly  = SMIC.monthly * pct;
   const appAnnual   = appMonthly * 12;
-  const appCost     = appAnnual * (1 + CHARGES.app) + f.sullyFee - f.stateAid;
+  const appCost     = appAnnual * (1 + CHARGES.app) + f.sullyFee - stateAid;
   const hourlyReal  = appCost / realH;
   const etpMonthly  = ((hourlyReal * BASE_H) / (1 + CHARGES.sal)) / 12;
 
@@ -178,7 +185,7 @@ function compute(fId, age, yr) {
   const economyPct  = (economy / smicCost) * 100;
 
   return {
-    f, realH, pct, appMonthly, appAnnual, appCost,
+    f, stateAid, realH, pct, appMonthly, appAnnual, appCost,
     hourlyReal, etpMonthly, smicCost, smicHourly,
     economy, economyPct,
     presencePct: (realH / BASE_H) * 100,
@@ -194,7 +201,17 @@ const eur0 = n => `${fr0(n)} €`;
 
 // ── COMPOSANTS ───────────────────────────────────────────────────────────────
 
-function FormationPicker({ value, onChange }) {
+function StepLabel({ n, text }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+      <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#eff6ff', color: '#1e3799', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800 }}>{n}</span>
+      <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '.06em' }}>{text}</span>
+    </div>
+  );
+}
+
+function FormationPicker({ value, onChange, bigCompany }) {
+  const aidMap = bigCompany ? STATE_AID.big : STATE_AID.small;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
       {FORMATIONS.map(f => (
@@ -206,20 +223,39 @@ function FormationPicker({ value, onChange }) {
           <div style={{ fontSize: '22px', marginBottom: '4px' }}>{f.icon}</div>
           <div style={{ fontWeight: 700, fontSize: '16px' }}>{f.label}</div>
           <div style={{ fontSize: '11px', opacity: .7, marginTop: '2px' }}>{f.level}</div>
-          <div style={{ fontSize: '11px', marginTop: '6px', opacity: .8 }}>{f.hours}h école/an</div>
+          <div style={{ fontSize: '11px', marginTop: '6px', opacity: .8 }}>{f.hours} h école/an</div>
           <div style={{ fontSize: '11px', marginTop: '3px', color: value === f.id ? '#86efac' : '#059669', fontWeight: 600 }}>
-            Aide État {eur0(f.stateAid)}
+            Aide État {eur0(aidMap[f.id])}
           </div>
           {f.sullyFee > 0
             ? <div style={{ fontSize: '11px', color: value === f.id ? '#fcd34d' : '#d97706' }}>
-                Sully +{eur0(f.sullyFee)}
+                RAC +{eur0(f.sullyFee)}
               </div>
             : <div style={{ fontSize: '11px', color: value === f.id ? '#86efac' : '#059669' }}>
-                Sully inclus
+                RAC inclus
               </div>
           }
         </button>
       ))}
+    </div>
+  );
+}
+
+function SizePicker({ value, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: '10px' }}>
+      <button
+        className={`toggle-btn ${!value ? 'active' : ''}`}
+        onClick={() => onChange(false)}
+      >
+        &lt; 250 salariés
+      </button>
+      <button
+        className={`toggle-btn ${value ? 'active' : ''}`}
+        onClick={() => onChange(true)}
+      >
+        ≥ 250 salariés
+      </button>
     </div>
   );
 }
@@ -251,7 +287,7 @@ function YearPicker({ value, onChange }) {
       {[1,2].map(yr => (
         <button
           key={yr}
-          className={`year-btn ${value === yr ? 'active' : ''}`}
+          className={`toggle-btn ${value === yr ? 'active' : ''}`}
           onClick={() => onChange(yr)}
         >
           {yr === 1 ? '1ère Année' : '2ème Année'}
@@ -270,14 +306,14 @@ function PresenceBar({ pct, realH }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px', color: '#475569' }}>
-            <span>Absence école : <strong style={{ color: '#ef4444' }}>{BASE_H - realH}h</strong></span>
-            <span>Présence effective : <strong style={{ color: '#1e3799' }}>{realH}h</strong></span>
+            <span>Absence école : <strong style={{ color: '#ef4444' }}>{BASE_H - realH} h</strong></span>
+            <span>Présence effective : <strong style={{ color: '#1e3799' }}>{realH} h</strong></span>
           </div>
           <div className="bar-bg">
             <div className="bar-fill" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#1e3799,#3b5bdb)' }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-            <span>0h</span><span>Base légale {BASE_H}h</span>
+            <span>0 h</span><span>Base légale {BASE_H} h</span>
           </div>
         </div>
         <div style={{ textAlign: 'center', background: '#eff6ff', borderRadius: '12px', padding: '10px 14px', minWidth: '72px' }}>
@@ -299,7 +335,7 @@ function ComparisonTable({ r }) {
         <thead>
           <tr>
             <th>Indicateur</th>
-            <th className="text-right" style={{ color: '#475569' }}>Salarié 35h (SMIC)</th>
+            <th className="text-right" style={{ color: '#475569' }}>Salarié 35 h (SMIC)</th>
             <th className="text-right" style={{ color: '#1e3799' }}>Apprenti Sully</th>
           </tr>
         </thead>
@@ -320,16 +356,16 @@ function ComparisonTable({ r }) {
             <td className="text-right" style={{ color: '#059669', fontWeight: 600 }}>2 %</td>
           </tr>
           <tr>
-            <td style={{ color: '#64748b' }}>Participation Sully</td>
+            <td style={{ color: '#64748b' }}>Reste à charge obligatoire</td>
             <td className="text-right" style={{ color: '#94a3b8' }}>—</td>
             <td className="text-right font-mono" style={{ color: r.f.sullyFee > 0 ? '#d97706' : '#059669', fontWeight: 600 }}>
-              {r.f.sullyFee > 0 ? `+ ${eur(r.f.sullyFee)}` : '✓ Gratuit'}
+              {r.f.sullyFee > 0 ? `+ ${eur(r.f.sullyFee)}` : '✓ Inclus'}
             </td>
           </tr>
           <tr>
             <td style={{ color: '#64748b' }}>Aide de l'État</td>
             <td className="text-right" style={{ color: '#94a3b8' }}>—</td>
-            <td className="text-right font-mono" style={{ color: '#059669', fontWeight: 600 }}>− {eur(r.f.stateAid)}</td>
+            <td className="text-right font-mono" style={{ color: '#059669', fontWeight: 600 }}>− {eur(r.stateAid)}</td>
           </tr>
           <tr className="highlight-row">
             <td style={{ fontWeight: 700, color: '#1e293b' }}>Coût total annuel employeur</td>
@@ -387,7 +423,7 @@ function CostBars({ r }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       <div className="card" style={{ padding: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' }}>
-          <span style={{ color: '#475569' }}>Salarié 35h (SMIC)</span>
+          <span style={{ color: '#475569' }}>Salarié 35 h (SMIC)</span>
           <span style={{ fontWeight: 700, color: '#1e293b', fontFamily: 'monospace' }}>{eur0(r.smicCost)}</span>
         </div>
         <div className="bar-bg">
@@ -424,10 +460,10 @@ function ImpactMessage({ r }) {
             </span>
             {', '}soit l'équivalent de{' '}
             <span style={{ fontWeight: 700, color: '#fde047' }}>{ratio} % du SMIC</span>
-            {' '}pour <strong>{r.realH} heures</strong> de présence productive annuelle.
+            {' '}pour <strong>{r.realH} h</strong> de présence productive annuelle.
           </p>
           <div style={{ marginTop: '10px', fontSize: '12px', color: '#93c5fd' }}>
-            Base : {r.realH}h présence réelle · Charges app. 2% · SMIC 2026 : {eur(SMIC.monthly)}/mois
+            Base : {r.realH} h présence réelle · Charges app. 2 % · Référentiel 2026/2027
           </div>
         </div>
       </div>
@@ -438,30 +474,24 @@ function ImpactMessage({ r }) {
 // ── APP PRINCIPALE ────────────────────────────────────────────────────────────
 
 function App() {
-  const [formation, setFormation] = useState('bts');
-  const [age,       setAge      ] = useState(22);
-  const [yr,        setYr       ] = useState(1);
+  const [formation,   setFormation  ] = useState('bts');
+  const [bigCompany,  setBigCompany ] = useState(false);
+  const [age,         setAge        ] = useState(22);
+  const [yr,          setYr         ] = useState(1);
 
-  const r = useMemo(() => compute(formation, age, yr), [formation, age, yr]);
+  const r = useMemo(() => compute(formation, age, yr, bigCompany), [formation, age, yr, bigCompany]);
 
   return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9' }}>
 
       {/* ── HEADER ── */}
       <header className="header-gradient" style={{ padding: '28px 20px 24px', color: '#fff' }}>
-        <div style={{ maxWidth: '960px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: '4px' }}>
-              Sully Business School — Outil Conseillers Formation
-            </div>
-            <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 800, lineHeight: 1.2 }}>Simulateur ROI Apprentissage</h1>
-            <p style={{ margin: '6px 0 0', fontSize: '14px', color: '#bfdbfe' }}>Démonstration financière de la valeur de l'alternance · Référentiel 2026/2027</p>
+        <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: '4px' }}>
+            Sully Business School
           </div>
-          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <div style={{ fontSize: '11px', color: '#93c5fd' }}>SMIC 2026</div>
-            <div style={{ fontSize: '22px', fontWeight: 800, color: '#fde047' }}>{eur(SMIC.monthly)}</div>
-            <div style={{ fontSize: '11px', color: '#93c5fd' }}>brut / mois · {fr2(SMIC.hourly)} €/h</div>
-          </div>
+          <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 800, lineHeight: 1.2 }}>Simulateur ROI Apprentissage</h1>
+          <p style={{ margin: '6px 0 0', fontSize: '14px', color: '#bfdbfe' }}>Démonstration financière de la valeur de l'alternance · Référentiel 2026/2027</p>
         </div>
       </header>
 
@@ -474,28 +504,30 @@ function App() {
 
             {/* Formation */}
             <div className="card" style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#eff6ff', color: '#1e3799', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800 }}>1</span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '.06em' }}>Formation</span>
+              <StepLabel n="1" text="Formation" />
+              <FormationPicker value={formation} onChange={setFormation} bigCompany={bigCompany} />
+            </div>
+
+            {/* Taille entreprise */}
+            <div className="card" style={{ padding: '20px' }}>
+              <StepLabel n="2" text="Taille de l'entreprise" />
+              <SizePicker value={bigCompany} onChange={setBigCompany} />
+              <div style={{ marginTop: '10px', fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>
+                {bigCompany
+                  ? 'Aide de l\'État réduite pour les entreprises ≥ 250 salariés.'
+                  : 'Aide de l\'État pleine pour les entreprises < 250 salariés.'}
               </div>
-              <FormationPicker value={formation} onChange={setFormation} />
             </div>
 
             {/* Âge */}
             <div className="card" style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#eff6ff', color: '#1e3799', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800 }}>2</span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '.06em' }}>Âge de l'Apprenti</span>
-              </div>
+              <StepLabel n="3" text="Âge de l'Apprenti" />
               <AgePicker value={age} onChange={setAge} />
             </div>
 
             {/* Année */}
             <div className="card" style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#eff6ff', color: '#1e3799', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 800 }}>3</span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '.06em' }}>Année de Contrat</span>
-              </div>
+              <StepLabel n="4" text="Année de Contrat" />
               <YearPicker value={yr} onChange={setYr} />
             </div>
 
@@ -505,10 +537,12 @@ function App() {
                 Paramètres Actuels
               </div>
               {[
-                ['Formation',        r.f.label],
-                ['Grille salariale', `${Math.round(r.pct * 100)} % du SMIC`],
+                ['Formation',         r.f.label],
+                ['Entreprise',        bigCompany ? '≥ 250 salariés' : '< 250 salariés'],
+                ['Grille salariale',  `${Math.round(r.pct * 100)} % du SMIC`],
                 ['Salaire brut/mois', eur(r.appMonthly)],
-                ['Heures présence',  `${r.realH} h / an`],
+                ['Aide de l\'État',   eur0(r.stateAid)],
+                ['Heures présence',   `${r.realH} h / an`],
                 ['Coût horaire réel', `${eur(r.hourlyReal)} / h`],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
@@ -545,7 +579,7 @@ function App() {
       {/* ── FOOTER ── */}
       <footer style={{ textAlign: 'center', padding: '16px', fontSize: '12px', color: '#94a3b8', borderTop: '1px solid #e2e8f0', background: '#fff' }}>
         <strong>Sully Business School</strong> · Simulateur ROI Apprentissage 2026/2027 ·
-        SMIC {eur(SMIC.monthly)}/mois · Base légale {BASE_H}h/an · Données indicatives, hors cas particuliers
+        Base légale {BASE_H} h/an · Données indicatives, hors cas particuliers
       </footer>
 
     </div>
