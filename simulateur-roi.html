@@ -153,19 +153,20 @@ function compute(fId, age, yr, bigCompany, refSal) {
   // Le dénominateur de la formule ETP utilise les charges du profil de référence
   const etpMonthly = ((hourlyReal * BASE_H) / (1 + refSal.charges)) / 12;
 
-  const refAnnual  = refSal.monthly * 12;
-  const refCost    = refAnnual * (1 + refSal.charges);
-  const refHourly  = refCost / BASE_H;
-  const economy    = refCost - appCost;
-  const economyPct = (economy / refCost) * 100;
+  const refAnnual      = refSal.monthly * 12;
+  const refCost        = refAnnual * (1 + refSal.charges);
+  const refHourly      = refCost / BASE_H;
+  // Économie exprimée sur le coût horaire (comparaison honnête)
+  const hourlySaving   = refHourly - hourlyReal;
+  const hourlySavingPct = (hourlySaving / refHourly) * 100;
   // Ratio ETP vs salaire de référence
-  const etpRatio   = (etpMonthly / refSal.monthly) * 100;
+  const etpRatio       = (etpMonthly / refSal.monthly) * 100;
 
   return {
     f, stateAid, realH, pct, appMonthly, appAnnual, appCost,
     hourlyReal, etpMonthly, etpRatio,
     refAnnual, refCost, refHourly,
-    economy, economyPct,
+    hourlySaving, hourlySavingPct,
     presencePct: (realH / BASE_H) * 100,
   };
 }
@@ -245,7 +246,7 @@ function YearPicker({ value, onChange }) {
       {[1,2].map(yr => (
         <button key={yr} className={`toggle-btn ${value === yr ? 'active' : ''}`}
           style={{ padding: '11px 8px', fontSize: '13px' }} onClick={() => onChange(yr)}>
-          {yr === 1 ? '1ère Année' : '2ème Année'}
+          {yr === 1 ? '1re Année' : '2e Année'}
         </button>
       ))}
     </div>
@@ -385,22 +386,22 @@ function ComparisonTable({ r, refSal }) {
   );
 }
 
-function EconomyCards({ r, refSal }) {
+function EconomyCards({ r }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
       <div className="card" style={{ padding: '18px', textAlign: 'center' }}>
-        <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Économie Annuelle</div>
-        <div style={{ fontSize: '26px', fontWeight: 800, color: r.economy > 0 ? '#059669' : '#dc2626' }}>
-          {r.economy > 0 ? '+' : ''}{eur0(r.economy)}
+        <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Écart de coût horaire</div>
+        <div style={{ fontSize: '26px', fontWeight: 800, color: r.hourlySaving > 0 ? '#059669' : '#dc2626' }}>
+          {r.hourlySaving > 0 ? '+' : ''}{fr2(r.hourlySaving)} €/h
         </div>
-        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>vs. {eur0(refSal.monthly)} brut/mois</div>
+        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>en faveur de l'apprenti</div>
       </div>
       <div className="card" style={{ padding: '18px', textAlign: 'center' }}>
-        <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Réduction de Coût</div>
-        <div style={{ fontSize: '26px', fontWeight: 800, color: r.economyPct > 0 ? '#059669' : '#dc2626' }}>
-          {r.economyPct > 0 ? '−' : '+'}{Math.abs(r.economyPct).toFixed(1)} %
+        <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Gain sur le coût horaire</div>
+        <div style={{ fontSize: '26px', fontWeight: 800, color: r.hourlySavingPct > 0 ? '#059669' : '#dc2626' }}>
+          {r.hourlySavingPct > 0 ? '−' : '+'}{Math.abs(r.hourlySavingPct).toFixed(1)} %
         </div>
-        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>vs. profil de référence</div>
+        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>vs. coût horaire de référence</div>
       </div>
     </div>
   );
@@ -553,7 +554,7 @@ function App() {
             <PresenceBar realH={r.realH} />
             <RefSalaryToggle value={refSalId} onChange={setRefSalId} defaultId={defaultRefId} />
             <ComparisonTable r={r} refSal={refSal} />
-            <EconomyCards r={r} refSal={refSal} />
+            <EconomyCards r={r} />
             <CostBars r={r} refSal={refSal} />
             <ImpactMessage r={r} refSal={refSal} />
 
