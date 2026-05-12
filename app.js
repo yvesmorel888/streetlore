@@ -1,13 +1,6 @@
 'use strict';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CONFIG IA
-// ═══════════════════════════════════════════════════════════════════════════
-
-const GROQ_KEY = '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';
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-
-// ═══════════════════════════════════════════════════════════════════════════
 // ÉTAT
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -96,54 +89,6 @@ function linkRow(url,title,domain,icon){
   </a>`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// API — GEMINI
-// ═══════════════════════════════════════════════════════════════════════════
-
-// Dernier message d'erreur IA — affiché dans la carte résultat
-let _geminiError = '';
-
-async function callGroq(full, city, mode='street') {
-  _geminiError = '';
-  try {
-    let prompt;
-    if (mode==='city') {
-      prompt=`En 3 à 4 phrases en français, présente les origines et l'histoire de la ville de ${city} : son étymologie, sa fondation et ce qui la caractérise historiquement.`+
-        ` Ne cite que des faits certains. Si une information est incertaine, signale-le explicitement. Sois factuel et concis.`;
-    } else {
-      prompt=`En 2 à 4 phrases en français, explique l'origine du nom "${full}"${city?` à ${city}`:''}.`+
-        ` Si c'est une personne : qui était-elle, quelle est sa biographie certaine, quel est son lien avec cette ville ou région ?`+
-        ` Si tu n'es pas certain de l'identité ou de l'histoire, dis-le explicitement plutôt que de supposer.`+
-        ` Si l'origine est inconnue ou douteuse, indique-le honnêtement.`+
-        ` Ne décris pas la rue elle-même. Ne présente jamais une hypothèse comme un fait établi.`;
-    }
-    const r=await withTimeout(fetch(GROQ_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},
-      body:JSON.stringify({
-        model:'llama-3.3-70b-versatile',
-        messages:[
-          {role:'system',content:'Tu es un assistant historique précis. Pour les faits bien établis (personnages historiques connus, événements documentés), réponds avec confiance. Pour les détails incertains ou les figures obscures, signale l\'incertitude ("l\'origine exacte est incertaine", "probablement", etc.). Ne présente jamais une supposition comme un fait avéré, mais ne refuse pas de répondre quand la réponse est bien connue.'},
-          {role:'user',content:prompt}
-        ],
-        temperature:0.2,
-        max_tokens:300,
-      }),
-    }),15000);
-    if(!r.ok){
-      const err=await r.json().catch(()=>({}));
-      _geminiError=err?.error?.message||`HTTP ${r.status}`;
-      return null;
-    }
-    const data=await r.json();
-    const text=data.choices?.[0]?.message?.content?.trim()||null;
-    if(!text) _geminiError='Réponse vide';
-    return text;
-  }catch(e){
-    _geminiError=e.message||'erreur réseau / CORS';
-    return null;
-  }
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // API — NOMINATIM
@@ -377,29 +322,17 @@ async function findBestWikiArticle(simple,full,city,lat,lon){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RECHERCHE PRINCIPALE — IA + Wikipedia en parallèle
+// RECHERCHE PRINCIPALE — Wikipedia
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function fetchStreetInfo(simple,full,city,lat,lon){
-  const[aiRes,wikiRes]=await Promise.allSettled([
-    callGroq(full,city,'street'),
-    findBestWikiArticle(simple,full,city,lat,lon),
-  ]);
-  return{
-    aiText: aiRes.status==='fulfilled'?aiRes.value:null,
-    wiki:   wikiRes.status==='fulfilled'?wikiRes.value:null,
-  };
+  const wiki=await findBestWikiArticle(simple,full,city,lat,lon).catch(()=>null);
+  return{wiki};
 }
 
 async function fetchCityInfo(city){
-  const[aiRes,wikiRes]=await Promise.allSettled([
-    callGroq(null,city,'city'),
-    wikiSummary(city),
-  ]);
-  return{
-    aiText: aiRes.status==='fulfilled'?aiRes.value:null,
-    wiki:   wikiRes.status==='fulfilled'?wikiRes.value:null,
-  };
+  const wiki=await wikiSummary(city).catch(()=>null);
+  return{wiki};
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -538,7 +471,7 @@ async function renderResults(type,sharedName,sharedCity){
   }
 
   let res;
-  try{res=await state.wikiCache[cacheKey];}catch{res={aiText:null,wiki:null};}
+  try{res=await state.wikiCache[cacheKey];}catch{res={wiki:null};}
   applyWikiSection(res,name,city);
 }
 
@@ -562,32 +495,19 @@ function applyWikiSection(res,name,city){
     linkRow(`https://www.google.com/search?q=${gQ}`,'Rechercher sur Google','google.com','🔍')+
     linkRow(perplexityUrl,'Approfondir avec Perplexity','perplexity.ai','🤖');
 
-  // Contenu principal — synthèse IA
-  if(res.aiText){
-    badge.className='source-badge ai';
-    badge.textContent='🤖 Synthèse IA (Llama 3.1) · peut contenir des erreurs factuelles — vérifiez avec les liens ci-dessous';
+  // Contenu principal — Wikipedia
+  if(res.wiki?.extract){
+    const extract=res.wiki.extract.length>600?res.wiki.extract.slice(0,600).replace(/\s+\S*$/,'')+'…':res.wiki.extract;
+    badge.className='source-badge info';
+    badge.textContent='📖 Source : Wikipédia';
     let html='';
-    if(res.wiki?.thumbnail?.source)
-      html+=`<img src="${res.wiki.thumbnail.source}" class="wiki-thumb" alt="${name}" loading="lazy">`;
-    html+=`<p class="wiki-text">${res.aiText}</p>`;
+    if(res.wiki.thumbnail?.source) html+=`<img src="${res.wiki.thumbnail.source}" class="wiki-thumb" alt="${name}" loading="lazy">`;
+    html+=`<p class="wiki-text">${extract}</p>`;
     wikiEl.innerHTML=html;
   }else{
-    // Fallback si Gemini indisponible
     badge.className='source-badge dim';
-    badge.textContent='◌ Synthèse IA indisponible — consultez les liens ci-dessous';
-    const errHint=_geminiError
-      ?`<p class="gemini-debug">⚠️ Erreur IA : <code>${_geminiError}</code></p>`
-      :'';
-    if(res.wiki?.extract){
-      const extract=res.wiki.extract.length>520?res.wiki.extract.slice(0,520).replace(/\s+\S*$/,'')+'…':res.wiki.extract;
-      let html=errHint;
-      if(res.wiki.thumbnail?.source) html+=`<img src="${res.wiki.thumbnail.source}" class="wiki-thumb" alt="${name}" loading="lazy">`;
-      html+=`<p class="wiki-origin">Source : <strong>${res.wiki.title}</strong> — Wikipédia</p>`;
-      html+=`<p class="wiki-text">${extract}</p>`;
-      wikiEl.innerHTML=html;
-    }else{
-      wikiEl.innerHTML=`${errHint}<div class="empty"><p class="empty-ico">🔍</p><p>Impossible de générer une synthèse pour <strong>${name}</strong>.<br>Consultez les liens ci-dessous.</p></div>`;
-    }
+    badge.textContent='◌ Aucune information Wikipedia trouvée';
+    wikiEl.innerHTML=`<div class="empty"><p class="empty-ico">🔍</p><p>Aucune information disponible pour <strong>${name}</strong>.<br>Utilisez les liens ci-dessous pour en savoir plus.</p></div>`;
   }
 }
 
