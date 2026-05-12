@@ -122,6 +122,7 @@ const REF_SALARIES = [
 
 // Référence recommandée par défaut selon la formation
 const DEFAULT_REF = { bts: 'smic', bachelor: 'tech', mastere: 'cadre' };
+const DEFAULT_AGE = { bts: 18, bachelor: 20, mastere: 21 };
 
 const CHARGES_APP = 0.02;
 
@@ -465,7 +466,7 @@ function ImpactMessage({ r, refSal }) {
 function App() {
   const [formation,  setFormation ] = useState('bts');
   const [bigCompany, setBigCompany] = useState(false);
-  const [age,        setAge       ] = useState(22);
+  const [age,        setAge       ] = useState(DEFAULT_AGE['bts']);
   const [yr,         setYr        ] = useState(1);
   const [refSalId,   setRefSalId  ] = useState(DEFAULT_REF['bts']);
 
@@ -473,6 +474,7 @@ function App() {
   const handleFormationChange = (fId) => {
     setFormation(fId);
     setRefSalId(DEFAULT_REF[fId]);
+    setAge(DEFAULT_AGE[fId]);
   };
 
   const refSal  = REF_SALARIES.find(r => r.id === refSalId);
