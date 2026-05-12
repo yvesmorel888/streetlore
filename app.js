@@ -12,11 +12,13 @@ const state = {
   streetSimple:  '',
   cityName:      '',
   plaques:       [],
+  monuments:     [],
   resultType:    '',
   wikiCache:     {},
   manualEdit:    false,
   leafletLoaded: false,
   mapInstance:   null,
+  mhMapInstance: null,
   nearbyStreets: [],
 };
 
@@ -172,6 +174,44 @@ async function enrichPlaquesPhotos(list){
   }));
   list.forEach(p=>delete p._commonsCategory);
   return list;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// API — MONUMENTS HISTORIQUES (500 m)
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function fetchMonumentsHistoriques(lat,lon){
+  try{
+    const url=new URL('https://data.culture.gouv.fr/api/explore/v2.1/catalog/datasets/liste-des-immeubles-proteges-au-titre-des-monuments-historiques/records');
+    url.searchParams.set('where',`dist(coordonnees_gps, geom'POINT(${lon} ${lat})', 500m)`);
+    url.searchParams.set('limit','30');
+    url.searchParams.set('order_by',`dist(coordonnees_gps, geom'POINT(${lon} ${lat})')`);
+    const r=await withTimeout(fetch(url,{headers:{Accept:'application/json'}}),10000);
+    if(!r.ok) return[];
+    const data=await r.json();
+    return(data.results||[]).map(rec=>{
+      const coords=rec.coordonnees_gps;
+      const lat2=coords?.lat??coords?.latitude;
+      const lon2=coords?.lon??coords?.longitude;
+      if(!lat2||!lon2) return null;
+      const ref=rec.reference_de_la_notice_merimee||'';
+      const rawType=(rec.type_de_protection||rec.type_protection||'').toLowerCase();
+      const type=rawType.includes('class')?'classé MH':rawType.includes('inscrit')?'inscrit MH':'MH';
+      const rawDate=rec.date_de_protection||'';
+      const year=rawDate.slice(0,4)||'';
+      const merimeeUrl=ref?`https://www.pop.culture.gouv.fr/notice/merimee/${ref}`:'';
+      return{
+        id:ref||`mh-${lat2}-${lon2}`,
+        name:rec.appellation_courante||'Monument historique',
+        type,
+        adresse:rec.adresse_de_localisation||rec.adresse||'',
+        year,
+        merimeeUrl,
+        lat:lat2,lon:lon2,
+        distance:haversine(lat,lon,lat2,lon2),
+      };
+    }).filter(Boolean).sort((a,b)=>a.distance-b.distance);
+  }catch{return[];}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -398,12 +438,16 @@ function renderHome(){
   document.getElementById('manual-notice').classList.add('hidden');
   document.getElementById('plaques-badge').classList.add('hidden');
   document.getElementById('plaques-loading').classList.remove('hidden');
+  document.getElementById('mh-badge').classList.add('hidden');
+  document.getElementById('mh-loading').classList.remove('hidden');
   const btnChange=document.getElementById('btn-change-street');
   if(state.nearbyStreets.length>1) btnChange.classList.remove('hidden');
   else btnChange.classList.add('hidden');
   showScreen('screen-home');
 
-  fetchAllPlaques(state.coords.lat,state.coords.lon).then(pl=>{
+  const{lat,lon}=state.coords;
+
+  fetchAllPlaques(lat,lon).then(pl=>{
     state.plaques=pl;
     document.getElementById('plaques-loading').classList.add('hidden');
     if(pl.length){
@@ -411,6 +455,15 @@ function renderHome(){
       document.getElementById('plaques-badge').classList.remove('hidden');
     }
   }).catch(()=>document.getElementById('plaques-loading').classList.add('hidden'));
+
+  fetchMonumentsHistoriques(lat,lon).then(mh=>{
+    state.monuments=mh;
+    document.getElementById('mh-loading').classList.add('hidden');
+    if(mh.length){
+      document.getElementById('mh-label').textContent=`${mh.length} monument${mh.length>1?'s':''} historique${mh.length>1?'s':''}`;
+      document.getElementById('mh-badge').classList.remove('hidden');
+    }
+  }).catch(()=>document.getElementById('mh-loading').classList.add('hidden'));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -572,6 +625,76 @@ async function renderPlaques(){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// RENDU — MONUMENTS HISTORIQUES
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function renderMonuments(){
+  const{lat,lon}=state.coords;
+  document.getElementById('mh-subtitle').textContent=
+    `${state.monuments.length} trouvé${state.monuments.length>1?'s':''} · 500 m · ${state.cityName}`;
+  showScreen('screen-monuments');
+
+  try{
+    await loadLeaflet();
+    const mapEl=document.getElementById('mh-map-container');
+    if(state.mhMapInstance){state.mhMapInstance.remove();state.mhMapInstance=null;}
+    const map=L.map(mapEl,{zoomControl:false}).setView([lat,lon],16);
+    L.control.zoom({position:'bottomright'}).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
+    const uIco=L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#f59e0b;border:3px solid #fff;border-radius:50%;box-shadow:0 0 8px rgba(245,158,11,.6)"></div>',iconAnchor:[7,7]});
+    L.marker([lat,lon],{icon:uIco}).addTo(map).bindPopup('<strong>Vous êtes ici</strong>');
+    const mIco=L.divIcon({className:'',html:'<div style="width:13px;height:13px;background:#10b981;border:2px solid #fff;border-radius:3px;"></div>',iconAnchor:[6,6]});
+    for(const m of state.monuments)
+      L.marker([m.lat,m.lon],{icon:mIco}).addTo(map)
+        .bindPopup(`<strong>${m.name}</strong><br><small>${m.type} · ${fmtDist(m.distance)}</small>`);
+    state.mhMapInstance=map;
+  }catch{
+    document.getElementById('mh-map-container').innerHTML='<p style="color:var(--muted);padding:1rem;text-align:center;font-size:.85rem">Carte non disponible</p>';
+  }
+
+  const list=document.getElementById('mh-list');
+  if(!state.monuments.length){
+    list.innerHTML='<div class="plaques-empty">🏛️<br><br>Aucun monument historique recensé dans un rayon de 500 m.</div>';
+    return;
+  }
+  list.innerHTML=state.monuments.map((m,i)=>{
+    const typeClass=m.type.includes('classé')?'classe':'inscrit';
+    return`<div class="mh-item" data-i="${i}">
+      <div class="mh-summary">
+        <div class="mh-icon">🏛️</div>
+        <div class="mh-body">
+          <p class="mh-name">${m.name}</p>
+          <div class="mh-badges">
+            <span class="mh-type ${typeClass}">${m.type}</span>
+            ${m.year?`<span class="mh-year">depuis ${m.year}</span>`:''}
+          </div>
+          ${m.adresse?`<p class="mh-adresse">${m.adresse}</p>`:''}
+          <p class="mh-dist">${fmtDist(m.distance)}</p>
+        </div>
+        <span class="mh-chev">›</span>
+      </div>
+      <div class="mh-detail">
+        ${m.merimeeUrl?`<a href="${m.merimeeUrl}" target="_blank" rel="noopener" class="mh-link">📋 Fiche Mérimée (Ministère de la Culture)</a>`:''}
+        <a href="https://www.google.com/search?q=${encodeURIComponent(m.name+' '+state.cityName+' monument historique')}" target="_blank" rel="noopener" class="mh-link">🔍 Rechercher sur Google</a>
+      </div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.mh-summary').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const item=el.closest('.mh-item');
+      const was=item.classList.contains('open');
+      list.querySelectorAll('.mh-item').forEach(i=>i.classList.remove('open'));
+      if(!was){
+        item.classList.add('open');
+        const m=state.monuments[+item.dataset.i];
+        if(state.mhMapInstance) state.mhMapInstance.flyTo([m.lat,m.lon],17,{duration:.8});
+      }
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // GPS + FLUX PRINCIPAL
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -659,9 +782,11 @@ document.getElementById('btn-change-street').addEventListener('click',()=>showSt
 document.getElementById('btn-street').addEventListener('click',()=>renderResults('street'));
 document.getElementById('btn-city').addEventListener('click',()=>renderResults('city'));
 document.getElementById('btn-plaques').addEventListener('click',renderPlaques);
+document.getElementById('btn-monuments').addEventListener('click',renderMonuments);
 document.getElementById('btn-about').addEventListener('click',()=>showScreen('screen-about'));
 document.getElementById('btn-back-results').addEventListener('click',()=>showScreen('screen-home'));
 document.getElementById('btn-back-plaques').addEventListener('click',()=>showScreen('screen-home'));
+document.getElementById('btn-back-monuments').addEventListener('click',()=>showScreen('screen-home'));
 document.getElementById('btn-back-about').addEventListener('click',()=>showScreen('screen-home'));
 document.getElementById('btn-share').addEventListener('click',doShare);
 

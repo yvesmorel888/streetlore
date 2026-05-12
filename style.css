@@ -335,6 +335,32 @@ h1 {
 .pd-wiki { font-size: .85rem; color: var(--accent); text-decoration: none; }
 .plaques-empty { padding: 3rem 2rem; text-align: center; color: var(--muted); font-size: .95rem; line-height: 1.7; }
 
+/* ── MONUMENTS HISTORIQUES ──────────────────────────────────────────────── */
+#screen-monuments { overflow-y: scroll; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; display: flex; flex-direction: column; }
+#mh-list-wrap { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+.mh-item { border-bottom: 1px solid var(--border); }
+.mh-item:last-child { border-bottom: none; }
+
+.mh-summary { display: flex; align-items: flex-start; gap: .875rem; padding: 1rem 1.25rem; cursor: pointer; }
+.mh-icon { font-size: 1.4rem; flex-shrink: 0; padding-top: .1rem; }
+.mh-body { flex: 1; min-width: 0; }
+.mh-name { font-size: .95rem; font-weight: 600; color: var(--text); margin-bottom: .375rem; line-height: 1.4; }
+.mh-badges { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .3rem; }
+.mh-type { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: .2rem .55rem; border-radius: 999px; }
+.mh-type.classe { background: rgba(16,185,129,.15); color: var(--green); border: 1px solid rgba(16,185,129,.35); }
+.mh-type.inscrit { background: rgba(59,130,246,.12); color: #93c5fd; border: 1px solid rgba(59,130,246,.3); }
+.mh-year { font-size: .75rem; color: var(--muted); align-self: center; }
+.mh-adresse { font-size: .8rem; color: var(--muted); margin-bottom: .2rem; }
+.mh-dist { font-size: .78rem; color: var(--dim); }
+.mh-chev { color: var(--dim); font-size: 1.2rem; align-self: center; flex-shrink: 0; transition: transform .2s; }
+.mh-item.open .mh-chev { transform: rotate(90deg); }
+
+.mh-detail { display: none; flex-direction: column; gap: .625rem; padding: 0 1.25rem 1rem 3.3rem; }
+.mh-item.open .mh-detail { display: flex; }
+.mh-link { display: inline-flex; align-items: center; gap: .5rem; font-size: .85rem; color: var(--accent); text-decoration: none; font-weight: 500; }
+.mh-link:active { opacity: .7; }
+
 /* ── À PROPOS ────────────────────────────────────────────────────────────── */
 /* about-scroll = padding wrapper, PAS un scroll container */
 .about-scroll {

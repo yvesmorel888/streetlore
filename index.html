@@ -112,6 +112,22 @@
         <button id="btn-plaques" class="btn-see">Voir →</button>
       </div>
 
+      <div id="mh-loading" class="plaques-loading">
+        <div class="spinner-sm"></div>
+        <span>Recherche de monuments historiques…</span>
+      </div>
+
+      <div id="mh-badge" class="plaques-badge hidden">
+        <div class="pb-left">
+          <span>🏛️</span>
+          <div>
+            <p id="mh-label" class="pb-label"></p>
+            <p class="pb-sub">dans un rayon de 500 m</p>
+          </div>
+        </div>
+        <button id="btn-monuments" class="btn-see">Voir →</button>
+      </div>
+
       <button id="btn-change-street" class="btn-ghost hidden">🛣️ Changer de rue</button>
       <button id="btn-relocate" class="btn-ghost">🔄 Nouvelle localisation</button>
 
@@ -176,6 +192,22 @@
     <div id="map-container" class="map-container"></div>
     <div id="plaques-list-wrap" class="plaques-list-wrap">
       <div id="plaques-list"></div>
+    </div>
+  </div>
+
+  <!-- ══ MONUMENTS HISTORIQUES ════════════════════════════════════════════════ -->
+  <div id="screen-monuments" class="screen">
+    <div class="topbar">
+      <button id="btn-back-monuments" class="btn-round">←</button>
+      <div class="topbar-title">
+        <p class="res-eyebrow">À proximité · 500 m</p>
+        <h2 class="res-name">Monuments historiques</h2>
+        <p id="mh-subtitle" class="res-city"></p>
+      </div>
+    </div>
+    <div id="mh-map-container" class="map-container"></div>
+    <div id="mh-list-wrap" class="plaques-list-wrap">
+      <div id="mh-list"></div>
     </div>
   </div>
 
