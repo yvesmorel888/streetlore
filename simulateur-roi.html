@@ -12,36 +12,19 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
-
     body { margin: 0; background: #f1f5f9; }
 
-    .header-gradient {
-      background: linear-gradient(135deg, #0c1f4d 0%, #1e3799 60%, #0c2461 100%);
-    }
+    .header-gradient { background: linear-gradient(135deg, #0c1f4d 0%, #1e3799 60%, #0c2461 100%); }
+    .impact-gradient  { background: linear-gradient(135deg, #0c2461 0%, #1e3799 50%, #0c2461 100%); }
 
-    .impact-gradient {
-      background: linear-gradient(135deg, #0c2461 0%, #1e3799 50%, #0c2461 100%);
-    }
-
-    /* Range slider */
     input[type=range] {
-      -webkit-appearance: none;
-      width: 100%;
-      height: 6px;
-      border-radius: 3px;
-      background: #e2e8f0;
-      outline: none;
-      cursor: pointer;
+      -webkit-appearance: none; width: 100%; height: 6px;
+      border-radius: 3px; background: #e2e8f0; outline: none; cursor: pointer;
     }
     input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: #1e3799;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(30,55,153,0.4);
-      transition: transform 0.15s;
+      -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+      background: #1e3799; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(30,55,153,0.4); transition: transform 0.15s;
     }
     input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
     input[type=range]::-moz-range-thumb {
@@ -51,76 +34,58 @@
 
     .card { background: #fff; border-radius: 16px; border: 1px solid #e8eef5; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
 
-    .badge-age {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-    }
+    .badge-age { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 
     .formation-btn {
-      border: 2px solid #e2e8f0;
-      border-radius: 14px;
-      background: #fff;
-      cursor: pointer;
-      text-align: left;
-      transition: all .18s;
-      padding: 14px 12px;
+      border: 2px solid #e2e8f0; border-radius: 14px; background: #fff;
+      cursor: pointer; text-align: left; transition: all .18s; padding: 14px 12px;
     }
     .formation-btn:hover { border-color: #93aede; transform: translateY(-1px); }
     .formation-btn.active {
-      border-color: #1e3799;
-      background: #1e3799;
-      color: #fff;
+      border-color: #1e3799; background: #1e3799; color: #fff;
       box-shadow: 0 4px 16px rgba(30,55,153,.3);
     }
 
     .toggle-btn {
-      flex: 1;
-      padding: 11px 8px;
-      border-radius: 12px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 13px;
-      transition: all .18s;
-      line-height: 1.3;
+      flex: 1; border-radius: 12px; border: none; cursor: pointer;
+      font-weight: 600; transition: all .18s; line-height: 1.3;
     }
-    .toggle-btn.active { background: #1e3799; color: #fff; box-shadow: 0 3px 10px rgba(30,55,153,.3); }
+    .toggle-btn.active  { background: #1e3799; color: #fff; box-shadow: 0 3px 10px rgba(30,55,153,.3); }
     .toggle-btn:not(.active) { background: #f1f5f9; color: #64748b; }
     .toggle-btn:not(.active):hover { background: #e2e8f0; }
 
-    .bar-bg { height: 12px; border-radius: 6px; background: #e2e8f0; overflow: hidden; }
+    /* Variante large pour le toggle de salaire de référence */
+    .ref-btn {
+      flex: 1; border-radius: 12px; border: 2px solid #e2e8f0; background: #fff;
+      cursor: pointer; padding: 10px 8px; text-align: center;
+      transition: all .18s; line-height: 1.3;
+    }
+    .ref-btn:hover { border-color: #93aede; }
+    .ref-btn.active {
+      border-color: #1e3799; background: #eff6ff; color: #1e3799;
+      box-shadow: 0 2px 8px rgba(30,55,153,.15);
+    }
+
+    .bar-bg  { height: 12px; border-radius: 6px; background: #e2e8f0; overflow: hidden; }
     .bar-fill { height: 100%; border-radius: 6px; transition: width .7s cubic-bezier(.4,0,.2,1); }
 
-    .pulse-soft {
-      animation: softPulse 3s ease-in-out infinite;
-    }
-    @keyframes softPulse {
-      0%,100% { opacity: 1; }
-      50% { opacity: .88; }
-    }
+    .pulse-soft { animation: softPulse 3s ease-in-out infinite; }
+    @keyframes softPulse { 0%,100% { opacity: 1; } 50% { opacity: .88; } }
 
     table { border-collapse: collapse; width: 100%; }
     th, td { padding: 10px 8px; text-align: left; font-size: 14px; }
     thead th { border-bottom: 2px solid #e8eef5; color: #64748b; font-weight: 500; }
     tbody tr { border-bottom: 1px solid #f1f5f9; }
     tbody tr:last-child { border-bottom: none; }
-    tbody tr.highlight-row { background: #eff6ff; }
-    tbody tr.highlight-row-green { background: #f0fdf4; }
-    .text-right { text-align: right; }
-    .font-mono { font-family: 'SF Mono', 'Fira Mono', monospace; }
+    tbody tr.hl-blue  { background: #eff6ff; }
+    tbody tr.hl-green { background: #f0fdf4; }
+    .tr { text-align: right; }
+    .mono { font-family: 'SF Mono', 'Fira Mono', monospace; }
 
     @media print {
       .no-print { display: none !important; }
       body { background: white; }
       .card { box-shadow: none; border: 1px solid #ccc; }
-    }
-
-    @media (max-width: 768px) {
-      .grid-inputs { grid-template-columns: 1fr; }
-      .formation-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -130,10 +95,9 @@
 <script type="text/babel">
 const { useState, useMemo } = React;
 
-// ── CONSTANTES ─────────────────────────────────────────────────────────────
+// ── CONSTANTES ──────────────────────────────────────────────────────────────
 
-const SMIC = { monthly: 1823.03, hourly: 12.02 };
-SMIC.annual = SMIC.monthly * 12;
+const SMIC_MONTHLY = 1823.03; // base de calcul du salaire apprenti (légal)
 
 const BASE_H = 1607;
 const EXAM_H = 35;
@@ -144,13 +108,22 @@ const FORMATIONS = [
   { id: 'mastere',  label: 'Mastère',  level: 'Niveau 7', icon: '🏆', hours: 600, sullyFee: 750 },
 ];
 
-// Aides de l'État selon taille entreprise
 const STATE_AID = {
-  small: { bts: 4500, bachelor: 2000, mastere: 2000 }, // < 250 salariés
-  big:   { bts: 1500, bachelor: 750,  mastere: 750  }, // >= 250 salariés
+  small: { bts: 4500, bachelor: 2000, mastere: 2000 },
+  big:   { bts: 1500, bachelor: 750,  mastere: 750  },
 };
 
-const CHARGES = { app: 0.02, sal: 0.07 };
+// Salaires de référence pour la comparaison
+const REF_SALARIES = [
+  { id: 'smic',   label: 'SMIC',               sublabel: 'Opérateur / Employé', monthly: 1823.03, charges: 0.07 },
+  { id: 'tech',   label: 'Bac+2/3 — 2 200 €',  sublabel: 'Technicien / Assistant', monthly: 2200,    charges: 0.18 },
+  { id: 'cadre',  label: 'Bac+5 — 2 400 €',    sublabel: 'Cadre Junior',        monthly: 2400,    charges: 0.24 },
+];
+
+// Référence recommandée par défaut selon la formation
+const DEFAULT_REF = { bts: 'smic', bachelor: 'tech', mastere: 'cadre' };
+
+const CHARGES_APP = 0.02;
 
 // ── CALCULS ─────────────────────────────────────────────────────────────────
 
@@ -166,40 +139,45 @@ function ageLabel(age) {
   return          { text: '18 – 20 ans',  cls: 'bg-emerald-100 text-emerald-700' };
 }
 
-function compute(fId, age, yr, bigCompany) {
+function compute(fId, age, yr, bigCompany, refSal) {
   const f        = FORMATIONS.find(x => x.id === fId);
-  const aidMap   = bigCompany ? STATE_AID.big : STATE_AID.small;
-  const stateAid = aidMap[fId];
+  const stateAid = (bigCompany ? STATE_AID.big : STATE_AID.small)[fId];
 
-  const realH       = BASE_H - (f.hours + EXAM_H);
-  const pct         = getPct(age, yr);
-  const appMonthly  = SMIC.monthly * pct;
-  const appAnnual   = appMonthly * 12;
-  const appCost     = appAnnual * (1 + CHARGES.app) + f.sullyFee - stateAid;
-  const hourlyReal  = appCost / realH;
-  const etpMonthly  = ((hourlyReal * BASE_H) / (1 + CHARGES.sal)) / 12;
+  const realH      = BASE_H - (f.hours + EXAM_H);
+  const pct        = getPct(age, yr);
+  const appMonthly = SMIC_MONTHLY * pct;
+  const appAnnual  = appMonthly * 12;
+  const appCost    = appAnnual * (1 + CHARGES_APP) + f.sullyFee - stateAid;
+  const hourlyReal = appCost / realH;
 
-  const smicCost    = SMIC.annual * (1 + CHARGES.sal);
-  const smicHourly  = smicCost / BASE_H;
-  const economy     = smicCost - appCost;
-  const economyPct  = (economy / smicCost) * 100;
+  // Le dénominateur de la formule ETP utilise les charges du profil de référence
+  const etpMonthly = ((hourlyReal * BASE_H) / (1 + refSal.charges)) / 12;
+
+  const refAnnual  = refSal.monthly * 12;
+  const refCost    = refAnnual * (1 + refSal.charges);
+  const refHourly  = refCost / BASE_H;
+  const economy    = refCost - appCost;
+  const economyPct = (economy / refCost) * 100;
+  // Ratio ETP vs salaire de référence
+  const etpRatio   = (etpMonthly / refSal.monthly) * 100;
 
   return {
     f, stateAid, realH, pct, appMonthly, appAnnual, appCost,
-    hourlyReal, etpMonthly, smicCost, smicHourly,
+    hourlyReal, etpMonthly, etpRatio,
+    refAnnual, refCost, refHourly,
     economy, economyPct,
     presencePct: (realH / BASE_H) * 100,
   };
 }
 
-// ── FORMATTERS ───────────────────────────────────────────────────────────────
+// ── FORMATTERS ──────────────────────────────────────────────────────────────
 
 const fr2 = n => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 const fr0 = n => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n);
 const eur  = n => `${fr2(n)} €`;
 const eur0 = n => `${fr0(n)} €`;
 
-// ── COMPOSANTS ───────────────────────────────────────────────────────────────
+// ── COMPOSANTS ──────────────────────────────────────────────────────────────
 
 function StepLabel({ n, text }) {
   return (
@@ -211,15 +189,11 @@ function StepLabel({ n, text }) {
 }
 
 function FormationPicker({ value, onChange, bigCompany }) {
-  const aidMap = bigCompany ? STATE_AID.big : STATE_AID.small;
+  const aidMap = (bigCompany ? STATE_AID.big : STATE_AID.small);
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
       {FORMATIONS.map(f => (
-        <button
-          key={f.id}
-          className={`formation-btn ${value === f.id ? 'active' : ''}`}
-          onClick={() => onChange(f.id)}
-        >
+        <button key={f.id} className={`formation-btn ${value === f.id ? 'active' : ''}`} onClick={() => onChange(f.id)}>
           <div style={{ fontSize: '22px', marginBottom: '4px' }}>{f.icon}</div>
           <div style={{ fontWeight: 700, fontSize: '16px' }}>{f.label}</div>
           <div style={{ fontSize: '11px', opacity: .7, marginTop: '2px' }}>{f.level}</div>
@@ -228,13 +202,8 @@ function FormationPicker({ value, onChange, bigCompany }) {
             Aide État {eur0(aidMap[f.id])}
           </div>
           {f.sullyFee > 0
-            ? <div style={{ fontSize: '11px', color: value === f.id ? '#fcd34d' : '#d97706' }}>
-                RAC +{eur0(f.sullyFee)}
-              </div>
-            : <div style={{ fontSize: '11px', color: value === f.id ? '#86efac' : '#059669' }}>
-                RAC inclus
-              </div>
-          }
+            ? <div style={{ fontSize: '11px', color: value === f.id ? '#fcd34d' : '#d97706' }}>RAC +{eur0(f.sullyFee)}</div>
+            : <div style={{ fontSize: '11px', color: value === f.id ? '#86efac' : '#059669' }}>RAC inclus</div>}
         </button>
       ))}
     </div>
@@ -244,18 +213,12 @@ function FormationPicker({ value, onChange, bigCompany }) {
 function SizePicker({ value, onChange }) {
   return (
     <div style={{ display: 'flex', gap: '10px' }}>
-      <button
-        className={`toggle-btn ${!value ? 'active' : ''}`}
-        onClick={() => onChange(false)}
-      >
-        &lt; 250 salariés
-      </button>
-      <button
-        className={`toggle-btn ${value ? 'active' : ''}`}
-        onClick={() => onChange(true)}
-      >
-        ≥ 250 salariés
-      </button>
+      {[false, true].map(big => (
+        <button key={String(big)} className={`toggle-btn ${value === big ? 'active' : ''}`}
+          style={{ padding: '11px 8px', fontSize: '13px' }} onClick={() => onChange(big)}>
+          {big ? '≥ 250 salariés' : '< 250 salariés'}
+        </button>
+      ))}
     </div>
   );
 }
@@ -264,16 +227,11 @@ function AgePicker({ value, onChange }) {
   const lbl = ageLabel(value);
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '28px', fontWeight: 800, color: '#0f172a' }}>{value} ans</span>
-          <span className={`badge-age ${lbl.cls}`}>{lbl.text}</span>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+        <span style={{ fontSize: '28px', fontWeight: 800, color: '#0f172a' }}>{value} ans</span>
+        <span className={`badge-age ${lbl.cls}`}>{lbl.text}</span>
       </div>
-      <input
-        type="range" min={18} max={30} value={value}
-        onChange={e => onChange(+e.target.value)}
-      />
+      <input type="range" min={18} max={30} value={value} onChange={e => onChange(+e.target.value)} />
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
         <span>18</span><span>21</span><span>26</span><span>30</span>
       </div>
@@ -285,11 +243,8 @@ function YearPicker({ value, onChange }) {
   return (
     <div style={{ display: 'flex', gap: '10px' }}>
       {[1,2].map(yr => (
-        <button
-          key={yr}
-          className={`toggle-btn ${value === yr ? 'active' : ''}`}
-          onClick={() => onChange(yr)}
-        >
+        <button key={yr} className={`toggle-btn ${value === yr ? 'active' : ''}`}
+          style={{ padding: '11px 8px', fontSize: '13px' }} onClick={() => onChange(yr)}>
           {yr === 1 ? '1ère Année' : '2ème Année'}
         </button>
       ))}
@@ -297,7 +252,44 @@ function YearPicker({ value, onChange }) {
   );
 }
 
-function PresenceBar({ pct, realH }) {
+function RefSalaryToggle({ value, onChange, defaultId }) {
+  return (
+    <div className="card" style={{ padding: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+          Comparer à un profil équivalent
+        </div>
+        {value !== defaultId && (
+          <button onClick={() => onChange(defaultId)}
+            style={{ fontSize: '11px', color: '#1e3799', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0 }}>
+            ↺ Recommandé
+          </button>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        {REF_SALARIES.map(ref => (
+          <button key={ref.id} className={`ref-btn ${value === ref.id ? 'active' : ''}`} onClick={() => onChange(ref.id)}>
+            <div style={{ fontWeight: 700, fontSize: '12px', color: 'inherit' }}>{ref.label}</div>
+            <div style={{ fontSize: '11px', color: value === ref.id ? '#3b5bdb' : '#94a3b8', marginTop: '2px' }}>
+              {ref.sublabel}
+            </div>
+            <div style={{ fontSize: '11px', marginTop: '4px', color: value === ref.id ? '#1e3799' : '#64748b', fontWeight: 600 }}>
+              Charges {Math.round(ref.charges * 100)} %
+            </div>
+            {ref.id === defaultId && (
+              <div style={{ fontSize: '10px', marginTop: '3px', color: value === ref.id ? '#3b82f6' : '#94a3b8' }}>
+                ★ recommandé
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PresenceBar({ realH }) {
+  const pct = (realH / BASE_H) * 100;
   return (
     <div className="card" style={{ padding: '20px' }}>
       <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '14px' }}>
@@ -325,7 +317,7 @@ function PresenceBar({ pct, realH }) {
   );
 }
 
-function ComparisonTable({ r }) {
+function ComparisonTable({ r, refSal }) {
   return (
     <div className="card" style={{ padding: '20px', overflowX: 'auto' }}>
       <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '14px' }}>
@@ -335,52 +327,55 @@ function ComparisonTable({ r }) {
         <thead>
           <tr>
             <th>Indicateur</th>
-            <th className="text-right" style={{ color: '#475569' }}>Salarié 35 h (SMIC)</th>
-            <th className="text-right" style={{ color: '#1e3799' }}>Apprenti Sully</th>
+            <th className="tr" style={{ color: '#475569' }}>
+              Salarié 35 h
+              <div style={{ fontSize: '11px', fontWeight: 400, color: '#94a3b8' }}>{eur0(refSal.monthly)} brut · {Math.round(refSal.charges*100)} % charges</div>
+            </th>
+            <th className="tr" style={{ color: '#1e3799' }}>Apprenti Sully</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td style={{ color: '#64748b' }}>Salaire brut mensuel</td>
-            <td className="text-right font-mono" style={{ color: '#334155' }}>{eur(SMIC.monthly)}</td>
-            <td className="text-right font-mono" style={{ color: '#1e3799', fontWeight: 600 }}>{eur(r.appMonthly)}</td>
+            <td className="tr mono" style={{ color: '#334155' }}>{eur(refSal.monthly)}</td>
+            <td className="tr mono" style={{ color: '#1e3799', fontWeight: 600 }}>{eur(r.appMonthly)}</td>
           </tr>
           <tr>
             <td style={{ color: '#64748b' }}>Salaire brut annuel</td>
-            <td className="text-right font-mono" style={{ color: '#334155' }}>{eur(SMIC.annual)}</td>
-            <td className="text-right font-mono" style={{ color: '#1e3799', fontWeight: 600 }}>{eur(r.appAnnual)}</td>
+            <td className="tr mono" style={{ color: '#334155' }}>{eur(r.refAnnual)}</td>
+            <td className="tr mono" style={{ color: '#1e3799', fontWeight: 600 }}>{eur(r.appAnnual)}</td>
           </tr>
           <tr>
             <td style={{ color: '#64748b' }}>Charges patronales</td>
-            <td className="text-right" style={{ color: '#334155' }}>7 %</td>
-            <td className="text-right" style={{ color: '#059669', fontWeight: 600 }}>2 %</td>
+            <td className="tr" style={{ color: '#334155' }}>{Math.round(refSal.charges * 100)} %</td>
+            <td className="tr" style={{ color: '#059669', fontWeight: 600 }}>2 %</td>
           </tr>
           <tr>
             <td style={{ color: '#64748b' }}>Reste à charge obligatoire</td>
-            <td className="text-right" style={{ color: '#94a3b8' }}>—</td>
-            <td className="text-right font-mono" style={{ color: r.f.sullyFee > 0 ? '#d97706' : '#059669', fontWeight: 600 }}>
+            <td className="tr" style={{ color: '#94a3b8' }}>—</td>
+            <td className="tr mono" style={{ color: r.f.sullyFee > 0 ? '#d97706' : '#059669', fontWeight: 600 }}>
               {r.f.sullyFee > 0 ? `+ ${eur(r.f.sullyFee)}` : '✓ Inclus'}
             </td>
           </tr>
           <tr>
             <td style={{ color: '#64748b' }}>Aide de l'État</td>
-            <td className="text-right" style={{ color: '#94a3b8' }}>—</td>
-            <td className="text-right font-mono" style={{ color: '#059669', fontWeight: 600 }}>− {eur(r.stateAid)}</td>
+            <td className="tr" style={{ color: '#94a3b8' }}>—</td>
+            <td className="tr mono" style={{ color: '#059669', fontWeight: 600 }}>− {eur(r.stateAid)}</td>
           </tr>
-          <tr className="highlight-row">
+          <tr className="hl-blue">
             <td style={{ fontWeight: 700, color: '#1e293b' }}>Coût total annuel employeur</td>
-            <td className="text-right font-mono" style={{ fontWeight: 700, color: '#1e293b' }}>{eur(r.smicCost)}</td>
-            <td className="text-right font-mono" style={{ fontWeight: 700, color: '#1e3799' }}>{eur(r.appCost)}</td>
+            <td className="tr mono" style={{ fontWeight: 700, color: '#1e293b' }}>{eur(r.refCost)}</td>
+            <td className="tr mono" style={{ fontWeight: 700, color: '#1e3799' }}>{eur(r.appCost)}</td>
           </tr>
           <tr>
             <td style={{ color: '#64748b' }}>Heures de présence effectives</td>
-            <td className="text-right font-mono" style={{ color: '#334155' }}>{BASE_H} h</td>
-            <td className="text-right font-mono" style={{ color: '#1e3799', fontWeight: 600 }}>{r.realH} h</td>
+            <td className="tr mono" style={{ color: '#334155' }}>{BASE_H} h</td>
+            <td className="tr mono" style={{ color: '#1e3799', fontWeight: 600 }}>{r.realH} h</td>
           </tr>
-          <tr className="highlight-row-green">
+          <tr className="hl-green">
             <td style={{ fontWeight: 700, color: '#1e293b' }}>Coût horaire réel</td>
-            <td className="text-right font-mono" style={{ fontWeight: 700, color: '#1e293b' }}>{eur(r.smicHourly)} / h</td>
-            <td className="text-right font-mono" style={{ fontWeight: 700, color: r.hourlyReal < r.smicHourly ? '#059669' : '#dc2626' }}>
+            <td className="tr mono" style={{ fontWeight: 700, color: '#1e293b' }}>{eur(r.refHourly)} / h</td>
+            <td className="tr mono" style={{ fontWeight: 700, color: r.hourlyReal < r.refHourly ? '#059669' : '#dc2626' }}>
               {eur(r.hourlyReal)} / h
             </td>
           </tr>
@@ -390,61 +385,52 @@ function ComparisonTable({ r }) {
   );
 }
 
-function EconomyCards({ r }) {
+function EconomyCards({ r, refSal }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
       <div className="card" style={{ padding: '18px', textAlign: 'center' }}>
-        <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>
-          Économie Annuelle
-        </div>
+        <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Économie Annuelle</div>
         <div style={{ fontSize: '26px', fontWeight: 800, color: r.economy > 0 ? '#059669' : '#dc2626' }}>
           {r.economy > 0 ? '+' : ''}{eur0(r.economy)}
         </div>
-        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>vs. salarié SMIC</div>
+        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>vs. {eur0(refSal.monthly)} brut/mois</div>
       </div>
       <div className="card" style={{ padding: '18px', textAlign: 'center' }}>
-        <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>
-          Réduction de Coût
-        </div>
+        <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Réduction de Coût</div>
         <div style={{ fontSize: '26px', fontWeight: 800, color: r.economyPct > 0 ? '#059669' : '#dc2626' }}>
           {r.economyPct > 0 ? '−' : '+'}{Math.abs(r.economyPct).toFixed(1)} %
         </div>
-        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>par rapport au SMIC</div>
+        <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>vs. profil de référence</div>
       </div>
     </div>
   );
 }
 
-function CostBars({ r }) {
-  const max = Math.max(r.smicCost, Math.max(0, r.appCost)) * 1.08;
-  const wSmic = (r.smicCost / max) * 100;
-  const wApp  = (Math.max(0, r.appCost) / max) * 100;
+function CostBars({ r, refSal }) {
+  const max  = Math.max(r.refCost, Math.max(0, r.appCost)) * 1.08;
+  const wRef = (r.refCost / max) * 100;
+  const wApp = (Math.max(0, r.appCost) / max) * 100;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       <div className="card" style={{ padding: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' }}>
-          <span style={{ color: '#475569' }}>Salarié 35 h (SMIC)</span>
-          <span style={{ fontWeight: 700, color: '#1e293b', fontFamily: 'monospace' }}>{eur0(r.smicCost)}</span>
+          <span style={{ color: '#475569' }}>Salarié 35 h — {eur0(refSal.monthly)} brut</span>
+          <span style={{ fontWeight: 700, color: '#1e293b', fontFamily: 'monospace' }}>{eur0(r.refCost)}</span>
         </div>
-        <div className="bar-bg">
-          <div className="bar-fill" style={{ width: `${wSmic}%`, background: '#94a3b8' }} />
-        </div>
+        <div className="bar-bg"><div className="bar-fill" style={{ width: `${wRef}%`, background: '#94a3b8' }} /></div>
       </div>
       <div className="card" style={{ padding: '16px', border: '1px solid #bbf7d0', background: '#f0fdf4' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' }}>
           <span style={{ color: '#166534' }}>Apprenti Sully ({r.f.label})</span>
           <span style={{ fontWeight: 700, color: '#166534', fontFamily: 'monospace' }}>{eur0(r.appCost)}</span>
         </div>
-        <div className="bar-bg">
-          <div className="bar-fill" style={{ width: `${wApp}%`, background: 'linear-gradient(90deg,#059669,#10b981)' }} />
-        </div>
+        <div className="bar-bg"><div className="bar-fill" style={{ width: `${wApp}%`, background: 'linear-gradient(90deg,#059669,#10b981)' }} /></div>
       </div>
     </div>
   );
 }
 
-function ImpactMessage({ r }) {
-  const ratio = (r.etpMonthly / SMIC.monthly * 100).toFixed(0);
+function ImpactMessage({ r, refSal }) {
   return (
     <div className="impact-gradient pulse-soft" style={{ borderRadius: '18px', padding: '24px 28px', color: '#fff' }}>
       <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
@@ -458,8 +444,10 @@ function ImpactMessage({ r }) {
             <span style={{ fontSize: '28px', fontWeight: 800, color: '#fde047', whiteSpace: 'nowrap' }}>
               {eur(r.etpMonthly)} / mois
             </span>
-            {', '}soit l'équivalent de{' '}
-            <span style={{ fontWeight: 700, color: '#fde047' }}>{ratio} % du SMIC</span>
+            {', '}soit{' '}
+            <span style={{ fontWeight: 800, color: '#fde047' }}>{r.etpRatio.toFixed(0)} %</span>
+            {' '}du salaire de référence{' '}
+            <span style={{ fontWeight: 600, color: '#bfdbfe' }}>({refSal.sublabel} à {eur0(refSal.monthly)} / mois)</span>
             {' '}pour <strong>{r.realH} h</strong> de présence productive annuelle.
           </p>
           <div style={{ marginTop: '10px', fontSize: '12px', color: '#93c5fd' }}>
@@ -471,20 +459,32 @@ function ImpactMessage({ r }) {
   );
 }
 
-// ── APP PRINCIPALE ────────────────────────────────────────────────────────────
+// ── APP ──────────────────────────────────────────────────────────────────────
 
 function App() {
-  const [formation,   setFormation  ] = useState('bts');
-  const [bigCompany,  setBigCompany ] = useState(false);
-  const [age,         setAge        ] = useState(22);
-  const [yr,          setYr         ] = useState(1);
+  const [formation,  setFormation ] = useState('bts');
+  const [bigCompany, setBigCompany] = useState(false);
+  const [age,        setAge       ] = useState(22);
+  const [yr,         setYr        ] = useState(1);
+  const [refSalId,   setRefSalId  ] = useState(DEFAULT_REF['bts']);
 
-  const r = useMemo(() => compute(formation, age, yr, bigCompany), [formation, age, yr, bigCompany]);
+  // Quand on change de formation, on remet la référence recommandée
+  const handleFormationChange = (fId) => {
+    setFormation(fId);
+    setRefSalId(DEFAULT_REF[fId]);
+  };
+
+  const refSal  = REF_SALARIES.find(r => r.id === refSalId);
+  const defaultRefId = DEFAULT_REF[formation];
+  const r = useMemo(
+    () => compute(formation, age, yr, bigCompany, refSal),
+    [formation, age, yr, bigCompany, refSal]
+  );
 
   return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9' }}>
 
-      {/* ── HEADER ── */}
+      {/* HEADER */}
       <header className="header-gradient" style={{ padding: '28px 20px 24px', color: '#fff' }}>
         <div style={{ maxWidth: '960px', margin: '0 auto' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: '4px' }}>
@@ -495,37 +495,31 @@ function App() {
         </div>
       </header>
 
-      {/* ── MAIN ── */}
+      {/* MAIN */}
       <main style={{ maxWidth: '960px', margin: '0 auto', padding: '24px 16px 40px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '20px', alignItems: 'start' }}>
 
-          {/* ── COLONNE GAUCHE : INPUTS ── */}
+          {/* COLONNE GAUCHE */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-            {/* Formation */}
             <div className="card" style={{ padding: '20px' }}>
               <StepLabel n="1" text="Formation" />
-              <FormationPicker value={formation} onChange={setFormation} bigCompany={bigCompany} />
+              <FormationPicker value={formation} onChange={handleFormationChange} bigCompany={bigCompany} />
             </div>
 
-            {/* Taille entreprise */}
             <div className="card" style={{ padding: '20px' }}>
               <StepLabel n="2" text="Taille de l'entreprise" />
               <SizePicker value={bigCompany} onChange={setBigCompany} />
               <div style={{ marginTop: '10px', fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>
-                {bigCompany
-                  ? 'Aide de l\'État réduite pour les entreprises ≥ 250 salariés.'
-                  : 'Aide de l\'État pleine pour les entreprises < 250 salariés.'}
+                {bigCompany ? 'Aide de l\'État réduite pour les entreprises ≥ 250 salariés.' : 'Aide de l\'État pleine pour les entreprises < 250 salariés.'}
               </div>
             </div>
 
-            {/* Âge */}
             <div className="card" style={{ padding: '20px' }}>
               <StepLabel n="3" text="Âge de l'Apprenti" />
               <AgePicker value={age} onChange={setAge} />
             </div>
 
-            {/* Année */}
             <div className="card" style={{ padding: '20px' }}>
               <StepLabel n="4" text="Année de Contrat" />
               <YearPicker value={yr} onChange={setYr} />
@@ -542,6 +536,7 @@ function App() {
                 ['Grille salariale',  `${Math.round(r.pct * 100)} % du SMIC`],
                 ['Salaire brut/mois', eur(r.appMonthly)],
                 ['Aide de l\'État',   eur0(r.stateAid)],
+                ['Référence comparée', eur0(refSal.monthly) + '/mois'],
                 ['Heures présence',   `${r.realH} h / an`],
                 ['Coût horaire réel', `${eur(r.hourlyReal)} / h`],
               ].map(([k, v]) => (
@@ -551,23 +546,20 @@ function App() {
                 </div>
               ))}
             </div>
-
           </div>
 
-          {/* ── COLONNE DROITE : RÉSULTATS ── */}
+          {/* COLONNE DROITE */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <PresenceBar pct={r.presencePct} realH={r.realH} />
-            <ComparisonTable r={r} />
-            <EconomyCards r={r} />
-            <CostBars r={r} />
-            <ImpactMessage r={r} />
+            <PresenceBar realH={r.realH} />
+            <RefSalaryToggle value={refSalId} onChange={setRefSalId} defaultId={defaultRefId} />
+            <ComparisonTable r={r} refSal={refSal} />
+            <EconomyCards r={r} refSal={refSal} />
+            <CostBars r={r} refSal={refSal} />
+            <ImpactMessage r={r} refSal={refSal} />
 
-            {/* Bouton impression */}
             <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => window.print()}
-                style={{ padding: '9px 18px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
+              <button onClick={() => window.print()}
+                style={{ padding: '9px 18px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff', color: '#475569', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 🖨️ Imprimer / Exporter PDF
               </button>
             </div>
@@ -576,7 +568,6 @@ function App() {
         </div>
       </main>
 
-      {/* ── FOOTER ── */}
       <footer style={{ textAlign: 'center', padding: '16px', fontSize: '12px', color: '#94a3b8', borderTop: '1px solid #e2e8f0', background: '#fff' }}>
         <strong>Sully Business School</strong> · Simulateur ROI Apprentissage 2026/2027 ·
         Base légale {BASE_H} h/an · Données indicatives, hors cas particuliers
