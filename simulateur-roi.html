@@ -109,14 +109,15 @@ const BASE_H = 1607;
 const EXAM_H = 35;
 
 const FORMATIONS = [
-  { id: 'bts',      label: 'BTS',      level: 'Niveau 5', icon: '📘', hours: 450, sullyFee: 0   },
-  { id: 'bachelor', label: 'Bachelor', level: 'Niveau 6', icon: '🎓', hours: 500, sullyFee: 750 },
-  { id: 'mastere',  label: 'Mastère',  level: 'Niveau 7', icon: '🏆', hours: 600, sullyFee: 750 },
+  { id: 'titre',   label: 'Titre Pro', level: 'Niveau 4', icon: '📋', hours: 400, sullyFee: 0   },
+  { id: 'bts',     label: 'BTS',       level: 'Niveau 5', icon: '📘', hours: 450, sullyFee: 0   },
+  { id: 'bachelor',label: 'Bachelor',  level: 'Niveau 6', icon: '🎓', hours: 500, sullyFee: 750 },
+  { id: 'mastere', label: 'Mastère',   level: 'Niveau 7', icon: '🏆', hours: 600, sullyFee: 750 },
 ];
 
 const STATE_AID = {
-  small: { bts: 4500, bachelor: 2000, mastere: 2000 },
-  big:   { bts: 1500, bachelor: 750,  mastere: 750  },
+  small: { titre: 4500, bts: 4500, bachelor: 2000, mastere: 2000 },
+  big:   { titre: 1500, bts: 1500, bachelor: 750,  mastere: 750  },
 };
 
 // RQTH (contrats à compter du 8 mars 2026)
@@ -129,9 +130,9 @@ const REF_SALARIES = [
   { id: 'cadre', label: 'Bac+5 — 2 400 €',   sublabel: 'Cadre Junior',           monthly: 2400,    charges: 0.24 },
 ];
 
-const DEFAULT_REF = { bts: 'smic', bachelor: 'tech', mastere: 'cadre' };
-const DEFAULT_AGE = { bts: 18, bachelor: 20, mastere: 21 };
-const DURATION    = { bts: 2,  bachelor: 1,  mastere: 2  }; // durée du contrat en années
+const DEFAULT_REF = { titre: 'smic', bts: 'smic', bachelor: 'tech', mastere: 'cadre' };
+const DEFAULT_AGE = { titre: 22, bts: 18, bachelor: 20, mastere: 21 };
+const DURATION    = { titre: 1,  bts: 2,  bachelor: 1,  mastere: 2  }; // durée du contrat en années
 
 const CHARGES_APP = 0.02;
 
@@ -234,7 +235,7 @@ function StepLabel({ n, text, badge }) {
 function FormationPicker({ value, onChange, bigCompany }) {
   const aidMap = bigCompany ? STATE_AID.big : STATE_AID.small;
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '10px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '10px' }}>
       {FORMATIONS.map(f => (
         <button key={f.id} className={`formation-btn ${value === f.id ? 'active' : ''}`} onClick={() => onChange(f.id)}>
           <div style={{ fontSize: '22px', marginBottom: '4px' }}>{f.icon}</div>
