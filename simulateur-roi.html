@@ -131,6 +131,7 @@ const REF_SALARIES = [
 
 const DEFAULT_REF = { bts: 'smic', bachelor: 'tech', mastere: 'cadre' };
 const DEFAULT_AGE = { bts: 18, bachelor: 20, mastere: 21 };
+const DURATION    = { bts: 2,  bachelor: 1,  mastere: 2  }; // durée du contrat en années
 
 const CHARGES_APP = 0.02;
 
@@ -156,7 +157,7 @@ function ageLabel(age) {
   return          { text: '18 – 20 ans',  cls: 'bg-emerald-100 text-emerald-700' };
 }
 
-function compute(fId, age, yr, bigCompany, refSal, rqth, extraRac) {
+function computeSingle(fId, age, yr, bigCompany, refSal, rqth, extraRac) {
   const f = FORMATIONS.find(x => x.id === fId);
   const { stateAid, agefiph } = getAids(fId, yr, bigCompany, rqth);
 
@@ -182,6 +183,32 @@ function compute(fId, age, yr, bigCompany, refSal, rqth, extraRac) {
     refAnnual, refCost, refHourly,
     hourlySaving, hourlySavingPct,
     presencePct: (realH / BASE_H) * 100,
+    isAvg: false,
+  };
+}
+
+function compute(fId, age, yr, bigCompany, refSal, rqth, extraRac) {
+  if (yr !== 'avg') return computeSingle(fId, age, yr, bigCompany, refSal, rqth, extraRac);
+  const r1 = computeSingle(fId, age, 1, bigCompany, refSal, rqth, extraRac);
+  const r2 = computeSingle(fId, age, 2, bigCompany, refSal, rqth, extraRac);
+  const avg = k => (r1[k] + r2[k]) / 2;
+  const appCost        = avg('appCost');
+  const hourlyReal     = appCost / r1.realH;
+  const etpMonthly     = ((hourlyReal * BASE_H) / (1 + refSal.charges)) / 12;
+  const refAnnual      = r1.refAnnual;
+  const refCost        = r1.refCost;
+  const refHourly      = r1.refHourly;
+  const hourlySaving    = refHourly - hourlyReal;
+  const hourlySavingPct = (hourlySaving / refHourly) * 100;
+  const etpRatio       = (etpMonthly / refSal.monthly) * 100;
+  return {
+    f: r1.f, isAvg: true,
+    stateAid: avg('stateAid'), agefiph: avg('agefiph'), extraRac,
+    realH: r1.realH, pct: avg('pct'),
+    appMonthly: avg('appMonthly'), appAnnual: avg('appAnnual'),
+    appCost, hourlyReal, etpMonthly, etpRatio,
+    refAnnual, refCost, refHourly, hourlySaving, hourlySavingPct,
+    presencePct: r1.presencePct,
   };
 }
 
@@ -255,13 +282,25 @@ function AgePicker({ value, onChange }) {
   );
 }
 
-function YearPicker({ value, onChange }) {
+function YearPicker({ value, onChange, duration }) {
+  if (duration === 1) {
+    return (
+      <div style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: '10px', fontSize: '13px', color: '#64748b', fontWeight: 600, display: 'inline-block' }}>
+        📅 Contrat 1 an
+      </div>
+    );
+  }
+  const options = [
+    { val: 1,     label: '1re Année'  },
+    { val: 2,     label: '2e Année'   },
+    { val: 'avg', label: 'Moy. 2 ans' },
+  ];
   return (
-    <div style={{ display: 'flex', gap: '10px' }}>
-      {[1,2].map(yr => (
-        <button key={yr} className={`toggle-btn ${value === yr ? 'active' : ''}`}
-          style={{ padding: '11px 8px', fontSize: '13px' }} onClick={() => onChange(yr)}>
-          {yr === 1 ? '1re Année' : '2e Année'}
+    <div style={{ display: 'flex', gap: '8px' }}>
+      {options.map(opt => (
+        <button key={opt.val} className={`toggle-btn ${value === opt.val ? 'active' : ''}`}
+          style={{ padding: '11px 8px', fontSize: '13px' }} onClick={() => onChange(opt.val)}>
+          {opt.label}
         </button>
       ))}
     </div>
@@ -386,7 +425,7 @@ function PresenceBar({ realH }) {
 }
 
 function ComparisonTable({ r, refSal, rqth, yr }) {
-  const showAgefiph = rqth && yr === 1;
+  const showAgefiph = rqth && (yr === 1 || yr === 'avg');
   const showExtraRac = r.extraRac > 0;
   return (
     <div className="card" style={{ padding: '20px', overflowX: 'auto' }}>
@@ -431,7 +470,7 @@ function ComparisonTable({ r, refSal, rqth, yr }) {
           </tr>
           <tr>
             <td style={{ color: '#64748b' }}>
-              Aide de l'État{rqth && yr === 1 ? ' (RQTH majorée)' : yr === 2 ? ' (an 2 — non applicable)' : ''}
+              Aide de l'État{rqth && yr === 1 ? ' (RQTH majorée)' : yr === 2 ? ' (an 2 — non applicable)' : yr === 'avg' ? ' (moyenne 2 ans)' : ''}
             </td>
             <td className="tr" style={{ color: '#94a3b8' }}>—</td>
             <td className="tr mono" style={{ color: r.stateAid > 0 ? '#059669' : '#94a3b8', fontWeight: 600 }}>
@@ -564,6 +603,7 @@ function App() {
     setFormation(fId);
     setRefSalId(DEFAULT_REF[fId]);
     setAge(DEFAULT_AGE[fId]);
+    if (DURATION[fId] === 1) setYr(1);
   };
 
   const refSal     = REF_SALARIES.find(r => r.id === refSalId);
@@ -612,7 +652,7 @@ function App() {
 
             <div className="card" style={{ padding: '20px' }}>
               <StepLabel n="4" text="Année de Contrat" />
-              <YearPicker value={yr} onChange={setYr} />
+              <YearPicker value={yr} onChange={setYr} duration={DURATION[formation]} />
             </div>
 
             <div className="card" style={{ padding: '20px' }}>
@@ -632,12 +672,13 @@ function App() {
               </div>
               {[
                 ['Formation',          r.f.label],
+                ...(DURATION[formation] === 2 ? [['Année', yr === 1 ? '1re' : yr === 2 ? '2e' : 'Moy. 2 ans']] : []),
                 ['Entreprise',         bigCompany ? '≥ 250 salariés' : '< 250 salariés'],
                 ['Statut',             rqth ? '♿ RQTH' : 'Standard'],
                 ['Grille salariale',   `${Math.round(r.pct * 100)} % du SMIC`],
                 ['Salaire brut/mois',  eur(r.appMonthly)],
-                ['Aide de l\'État',    r.stateAid > 0 ? eur0(r.stateAid) : '— (an 2)'],
-                ...(rqth && yr === 1 ? [['Aide Agefiph', eur0(r.agefiph)]] : []),
+                ['Aide de l\'État',    r.stateAid > 0 ? `${eur0(r.stateAid)}${yr === 'avg' ? ' moy.' : ''}` : '— (an 2)'],
+                ...(rqth && (yr === 1 || yr === 'avg') ? [['Aide Agefiph', `${eur0(r.agefiph)}${yr === 'avg' ? ' moy.' : ''}`]] : []),
                 ...(extraRac > 0     ? [['RAC suppl.',   eur0(extraRac)]] : []),
                 ['Référence comparée', eur0(refSal.monthly) + '/mois'],
                 ['Heures présence',    `${r.realH} h / an`],
