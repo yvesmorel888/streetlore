@@ -287,6 +287,7 @@ function compute(fId, age, yr, bigCompany, refSal, rqth, extraRac, specificHours
 
 const fr2    = n => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 const fr0    = n => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n);
+const frN    = n => fr0(Math.round(n));
 const eur    = n => `${fr2(n)} €`;
 const eur0   = n => `${fr0(n)} €`;
 const frDate = d => new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -314,7 +315,7 @@ function FormationPicker({ value, onChange, bigCompany }) {
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: '15px', color: '#1e3799' }}>{sel.label}</div>
           <div style={{ fontSize: '11px', color: '#6080c4', marginTop: '2px' }}>
-            {sel.level} · {sel.hours} h école/an · Aide État {eur0(aidMap[sel.id])}
+            {sel.level} · {frN(sel.hours)} h école/an · Aide État {eur0(aidMap[sel.id])}
             {sel.sullyFee > 0 ? ` · RAC +${eur0(sel.sullyFee)}` : ' · RAC inclus'}
           </div>
         </div>
@@ -331,7 +332,7 @@ function FormationPicker({ value, onChange, bigCompany }) {
               <div style={{ fontSize: '22px', marginBottom: '4px' }}>{f.icon}</div>
               <div style={{ fontWeight: 700, fontSize: '16px' }}>{f.label}</div>
               <div style={{ fontSize: '11px', opacity: .7, marginTop: '2px' }}>{f.level}</div>
-              <div style={{ fontSize: '11px', marginTop: '6px', opacity: .8 }}>{f.hours} h école/an</div>
+              <div style={{ fontSize: '11px', marginTop: '6px', opacity: .8 }}>{frN(f.hours)} h école/an</div>
               <div style={{ fontSize: '11px', marginTop: '3px', color: value === f.id ? '#86efac' : '#059669', fontWeight: 600 }}>
                 Aide État {eur0(aidMap[f.id])}
               </div>
@@ -525,14 +526,14 @@ function PresenceBar({ r }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px', color: '#475569' }}>
-            <span style={{ color: '#475569' }}>Présence école : <strong style={{ color: '#ef4444' }}>{schoolH + EXAM_H} h</strong></span>
-            <span style={{ color: '#475569' }}>Présence entreprise : <strong style={{ color: '#1e3799' }}>{realH} h</strong></span>
+            <span style={{ color: '#475569' }}>Présence école : <strong style={{ color: '#ef4444' }}>{frN(schoolH + EXAM_H)} h</strong></span>
+            <span style={{ color: '#475569' }}>Présence entreprise : <strong style={{ color: '#1e3799' }}>{frN(realH)} h</strong></span>
           </div>
           <div className="bar-bg">
             <div className="bar-fill" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#1e3799,#3b5bdb)' }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-            <span>0 h</span><span>Base légale {BASE_H} h</span>
+            <span>0 h</span><span>Base légale {frN(BASE_H)} h</span>
           </div>
         </div>
         <div style={{ textAlign: 'center', background: '#eff6ff', borderRadius: '12px', padding: '10px 14px', minWidth: '72px' }}>
@@ -543,11 +544,11 @@ function PresenceBar({ r }) {
 
       {open && (
         <div style={{ marginTop: '18px', paddingTop: '16px', borderTop: '2px solid #e8eef5' }}>
-          <CalcRow label="Base légale annuelle" val={`${BASE_H} h`} />
-          <CalcRow label="Heures de formation (école)" op="−" val={`${schoolH} h`} />
+          <CalcRow label="Base légale annuelle" val={`${frN(BASE_H)} h`} />
+          <CalcRow label="Heures de formation (école)" op="−" val={`${frN(schoolH)} h`} />
           <CalcRow label="Heures d'examen" op="−" val={`${EXAM_H} h`} />
           <CalcSep />
-          <CalcRow label="Temps de présence entreprise" op="=" val={`${realH} h (${pct.toFixed(1)} %)`} bold />
+          <CalcRow label="Temps de présence entreprise" op="=" val={`${frN(realH)} h (${pct.toFixed(1)} %)`} bold />
         </div>
       )}
     </div>
@@ -596,7 +597,7 @@ function ComparisonTable({ r, refSal, rqth, yr, preciseData }) {
               <td colSpan="3" style={{ padding: '8px 8px 10px' }}>
                 {preciseData.segments.map((seg, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', padding: '3px 0', color: '#475569', borderBottom: i < preciseData.segments.length - 1 ? '1px solid #e8eef5' : 'none' }}>
-                    <span>{frDate(seg.start)} → {frDate(seg.end)} · {seg.age} ans · {Math.round(seg.pct * 100)} % SMIC · {seg.days} j</span>
+                    <span>{frDate(seg.start)} → {frDate(seg.end)} · {seg.age} ans · {Math.round(seg.pct * 100)} % SMIC · {frN(seg.days)} j</span>
                     <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{eur(SMIC_MONTHLY * seg.pct)}/mois</span>
                   </div>
                 ))}
@@ -654,8 +655,8 @@ function ComparisonTable({ r, refSal, rqth, yr, preciseData }) {
           </tr>
           <tr>
             <td style={{ color: '#64748b' }}>Heures de présence effectives</td>
-            <td className="tr mono" style={{ color: '#334155' }}>{BASE_H} h</td>
-            <td className="tr mono" style={{ color: '#1e3799', fontWeight: 600 }}>{r.realH} h</td>
+            <td className="tr mono" style={{ color: '#334155' }}>{frN(BASE_H)} h</td>
+            <td className="tr mono" style={{ color: '#1e3799', fontWeight: 600 }}>{frN(r.realH)} h</td>
           </tr>
           <tr className="hl-green">
             <td style={{ fontWeight: 700, color: '#1e293b' }}>Coût horaire réel</td>
@@ -733,10 +734,10 @@ function ImpactMessage({ r, refSal, rqth }) {
             <span style={{ fontWeight: 800, color: '#fde047' }}>{r.etpRatio.toFixed(0)} %</span>
             {' '}du salaire de référence{' '}
             <span style={{ fontWeight: 600, color: '#bfdbfe' }}>({refSal.sublabel} à {eur0(refSal.monthly)} / mois)</span>
-            {' '}pour <strong>{r.realH} h</strong> de présence productive annuelle.
+            {' '}pour <strong>{frN(r.realH)} h</strong> de présence productive annuelle.
           </p>
           <div style={{ marginTop: '10px', fontSize: '12px', color: '#93c5fd' }}>
-            Base : {r.realH} h présence réelle · Charges app. 2 % · Référentiel 2026/2027
+            Base : {frN(r.realH)} h présence réelle · Charges app. 2 % · Référentiel 2026/2027
           </div>
         </div>
       </div>
@@ -820,7 +821,7 @@ function SalaryYearDetail({ label, data }) {
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', padding: '5px 0', borderBottom: i < data.segments.length - 1 ? '1px solid #f1f5f9' : 'none', gap: '8px' }}>
               <div style={{ color: '#64748b' }}>
                 <div>{frDate(seg.start)} → {frDate(seg.end)}</div>
-                <div style={{ marginTop: '2px', color: '#94a3b8' }}>{seg.age} ans · {Math.round(seg.pct * 100)} % SMIC · {seg.days} j</div>
+                <div style={{ marginTop: '2px', color: '#94a3b8' }}>{seg.age} ans · {Math.round(seg.pct * 100)} % SMIC · {frN(seg.days)} j</div>
               </div>
               <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#334155', flexShrink: 0 }}>{eur(SMIC_MONTHLY * seg.pct)}/mois</span>
             </div>
@@ -999,7 +1000,7 @@ function App() {
                 ...(rqth && (yr === 1 || yr === 'avg') ? [['Aide Agefiph', `${eur0(r.agefiph)}${yr === 'avg' ? ' moy.' : ''}`]] : []),
                 ...(extraRac > 0     ? [['RAC suppl.',   eur0(extraRac)]] : []),
                 ['Référence comparée', eur0(refSal.monthly) + '/mois'],
-                ['Heures présence',    `${r.realH} h / an`],
+                ['Heures présence',    `${frN(r.realH)} h / an`],
                 ['Coût horaire réel',  `${eur(r.hourlyReal)} / h`],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
@@ -1033,7 +1034,7 @@ function App() {
 
       <footer style={{ textAlign: 'center', padding: '16px', fontSize: '12px', color: '#94a3b8', borderTop: '1px solid #e2e8f0', background: '#fff' }}>
         <strong>Sully Business School</strong> · Simulateur ROI Apprentissage 2026/2027 ·
-        Base légale {BASE_H} h/an · Données indicatives, hors cas particuliers
+        Base légale {frN(BASE_H)} h/an · Données indicatives, hors cas particuliers
       </footer>
 
     </div>
