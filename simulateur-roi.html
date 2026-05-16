@@ -134,6 +134,33 @@ const DEFAULT_REF = { titre: 'smic', bts: 'smic', bachelor: 'tech', mastere: 'ca
 const DEFAULT_AGE = { titre: 22, bts: 18, bachelor: 20, mastere: 21 };
 const DURATION    = { titre: 1,  bts: 2,  bachelor: 1,  mastere: 2  }; // durée du contrat en années
 
+const FC_URL = rncp => `https://www.francecompetences.fr/recherche/rncp/${rncp}/`;
+
+const SPECIFIC_FORMATIONS = {
+  titre: [
+    { id: 'tad',  label: 'Assistant(e) de Direction',           rncp: 36521, hours: 518 },
+    { id: 'tc',   label: 'Comptable',                            rncp: 36522, hours: 518 },
+    { id: 'tgp',  label: 'Gestionnaire de paie',                 rncp: 38147, hours: 518 },
+  ],
+  bts: [
+    { id: 'bts-assu', label: 'Assurance',                            rncp: 38359, hours: 675 },
+    { id: 'bts-gpme', label: 'Gestion de la PME',                    rncp: 38363, hours: 675 },
+    { id: 'bts-gtla', label: 'Gestion des Transports et Logistique', rncp: 38365, hours: 675 },
+    { id: 'bts-mco',  label: 'Management Commercial Opérationnel',   rncp: 38362, hours: 675 },
+    { id: 'bts-ndrc', label: 'Négociation et Digitalisation RC',     rncp: 38368, hours: 675 },
+  ],
+  bachelor: [
+    { id: 'bba',   label: 'Conseiller clientèle banque & assurance', rncp: 35538, hours: 558 },
+    { id: 'bcmrh', label: 'Chargé(e) de missions en RH',             rncp: 40853, hours: 553 },
+    { id: 'bcg',   label: 'Contrôleur de Gestion et Comptable',      rncp: 35989, hours: 553 },
+    { id: 'bcm',   label: 'Community Manager',                        rncp: 40907, hours: 553 },
+    { id: 'brdc',  label: 'Responsable du Développement Commercial',  rncp: 38123, hours: 450 },
+  ],
+  mastere: [
+    { id: 'mmcom', label: 'Manager Commercial et Marketing', rncp: 35208, hours: 525 },
+  ],
+};
+
 const CHARGES_APP = 0.02;
 
 // ── AIDES ───────────────────────────────────────────────────────────────────
@@ -158,11 +185,12 @@ function ageLabel(age) {
   return          { text: '18 – 20 ans',  cls: 'bg-emerald-100 text-emerald-700' };
 }
 
-function computeSingle(fId, age, yr, bigCompany, refSal, rqth, extraRac) {
+function computeSingle(fId, age, yr, bigCompany, refSal, rqth, extraRac, specificHours) {
   const f = FORMATIONS.find(x => x.id === fId);
   const { stateAid, agefiph } = getAids(fId, yr, bigCompany, rqth);
+  const hours = specificHours ?? f.hours;
 
-  const realH      = BASE_H - (f.hours + EXAM_H);
+  const realH      = BASE_H - (hours + EXAM_H);
   const pct        = getPct(age, yr);
   const appMonthly = SMIC_MONTHLY * pct;
   const appAnnual  = appMonthly * 12;
@@ -188,10 +216,10 @@ function computeSingle(fId, age, yr, bigCompany, refSal, rqth, extraRac) {
   };
 }
 
-function compute(fId, age, yr, bigCompany, refSal, rqth, extraRac) {
-  if (yr !== 'avg') return computeSingle(fId, age, yr, bigCompany, refSal, rqth, extraRac);
-  const r1 = computeSingle(fId, age, 1, bigCompany, refSal, rqth, extraRac);
-  const r2 = computeSingle(fId, age, 2, bigCompany, refSal, rqth, extraRac);
+function compute(fId, age, yr, bigCompany, refSal, rqth, extraRac, specificHours) {
+  if (yr !== 'avg') return computeSingle(fId, age, yr, bigCompany, refSal, rqth, extraRac, specificHours);
+  const r1 = computeSingle(fId, age, 1, bigCompany, refSal, rqth, extraRac, specificHours);
+  const r2 = computeSingle(fId, age, 2, bigCompany, refSal, rqth, extraRac, specificHours);
   const avg = k => (r1[k] + r2[k]) / 2;
   const appCost        = avg('appCost');
   const hourlyReal     = appCost / r1.realH;
@@ -589,29 +617,66 @@ function ImpactMessage({ r, refSal, rqth }) {
   );
 }
 
+function SpecificFormationPicker({ fId, value, onChange }) {
+  const options = SPECIFIC_FORMATIONS[fId] || [];
+  if (options.length === 0) return null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      {options.map(opt => {
+        const active = value === opt.id;
+        return (
+          <button key={opt.id} onClick={() => onChange(active ? null : opt.id)}
+            style={{
+              textAlign: 'left', padding: '10px 12px', borderRadius: '10px', cursor: 'pointer',
+              border: `2px solid ${active ? '#1e3799' : '#e2e8f0'}`,
+              background: active ? '#eff6ff' : '#fff', transition: 'all .15s',
+            }}>
+            <div style={{ fontWeight: 700, fontSize: '13px', color: active ? '#1e3799' : '#1e293b' }}>
+              {opt.label}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '3px' }}>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>RNCP {opt.rncp}</span>
+              <a href={FC_URL(opt.rncp)} target="_blank" rel="noopener"
+                onClick={e => e.stopPropagation()}
+                style={{ fontSize: '11px', color: '#1e3799', fontWeight: 600, textDecoration: 'none' }}>
+                Fiche France Compétences →
+              </a>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── APP ──────────────────────────────────────────────────────────────────────
 
 function App() {
-  const [formation,  setFormation ] = useState('bts');
-  const [bigCompany, setBigCompany] = useState(false);
-  const [age,        setAge       ] = useState(DEFAULT_AGE['bts']);
-  const [yr,         setYr        ] = useState(1);
-  const [refSalId,   setRefSalId  ] = useState(DEFAULT_REF['bts']);
-  const [rqth,       setRqth      ] = useState(false);
-  const [extraRac,   setExtraRac  ] = useState(0);
+  const [formation,   setFormation  ] = useState('bts');
+  const [specificId,  setSpecificId ] = useState(null);
+  const [bigCompany,  setBigCompany ] = useState(false);
+  const [age,         setAge        ] = useState(DEFAULT_AGE['bts']);
+  const [yr,          setYr         ] = useState(1);
+  const [refSalId,    setRefSalId   ] = useState(DEFAULT_REF['bts']);
+  const [rqth,        setRqth       ] = useState(false);
+  const [extraRac,    setExtraRac   ] = useState(0);
 
   const handleFormationChange = (fId) => {
     setFormation(fId);
+    setSpecificId(null);
     setRefSalId(DEFAULT_REF[fId]);
     setAge(DEFAULT_AGE[fId]);
     if (DURATION[fId] === 1) setYr(1);
   };
 
-  const refSal     = REF_SALARIES.find(r => r.id === refSalId);
+  const refSal       = REF_SALARIES.find(r => r.id === refSalId);
   const defaultRefId = DEFAULT_REF[formation];
+  const specificFm   = specificId ? (SPECIFIC_FORMATIONS[formation] || []).find(x => x.id === specificId) : null;
+  const specificHours = specificFm ? specificFm.hours : null;
+
   const r = useMemo(
-    () => compute(formation, age, yr, bigCompany, refSal, rqth, extraRac),
-    [formation, age, yr, bigCompany, refSal, rqth, extraRac]
+    () => compute(formation, age, yr, bigCompany, refSal, rqth, extraRac, specificHours),
+    [formation, age, yr, bigCompany, refSal, rqth, extraRac, specificHours]
   );
 
   return (
@@ -636,6 +701,14 @@ function App() {
             <div className="card" style={{ padding: '20px' }}>
               <StepLabel n="1" text="Formation" />
               <FormationPicker value={formation} onChange={handleFormationChange} bigCompany={bigCompany} />
+              {(SPECIFIC_FORMATIONS[formation] || []).length > 0 && (
+                <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e8eef5' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '10px' }}>
+                    Spécialité Sully <span style={{ fontWeight: 400, color: '#94a3b8', textTransform: 'none', letterSpacing: 0 }}>(optionnel — affine les heures)</span>
+                  </div>
+                  <SpecificFormationPicker fId={formation} value={specificId} onChange={setSpecificId} />
+                </div>
+              )}
             </div>
 
             <div className="card" style={{ padding: '20px' }}>
@@ -673,6 +746,7 @@ function App() {
               </div>
               {[
                 ['Formation',          r.f.label],
+                ...(specificFm ? [['Spécialité', specificFm.label]] : []),
                 ...(DURATION[formation] === 2 ? [['Année', yr === 1 ? '1re' : yr === 2 ? '2e' : 'Moy. 2 ans']] : []),
                 ['Entreprise',         bigCompany ? '≥ 250 salariés' : '< 250 salariés'],
                 ['Statut',             rqth ? '♿ RQTH' : 'Standard'],
