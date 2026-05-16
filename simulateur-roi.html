@@ -263,23 +263,44 @@ function StepLabel({ n, text, badge }) {
 }
 
 function FormationPicker({ value, onChange, bigCompany }) {
+  const [open, setOpen] = useState(false);
   const aidMap = bigCompany ? STATE_AID.big : STATE_AID.small;
+  const sel = FORMATIONS.find(f => f.id === value);
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '10px' }}>
-      {FORMATIONS.map(f => (
-        <button key={f.id} className={`formation-btn ${value === f.id ? 'active' : ''}`} onClick={() => onChange(f.id)}>
-          <div style={{ fontSize: '22px', marginBottom: '4px' }}>{f.icon}</div>
-          <div style={{ fontWeight: 700, fontSize: '16px' }}>{f.label}</div>
-          <div style={{ fontSize: '11px', opacity: .7, marginTop: '2px' }}>{f.level}</div>
-          <div style={{ fontSize: '11px', marginTop: '6px', opacity: .8 }}>{f.hours} h école/an</div>
-          <div style={{ fontSize: '11px', marginTop: '3px', color: value === f.id ? '#86efac' : '#059669', fontWeight: 600 }}>
-            Aide État {eur0(aidMap[f.id])}
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '12px', border: '2px solid #1e3799', background: '#eff6ff' }}>
+        <span style={{ fontSize: '22px' }}>{sel.icon}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: '15px', color: '#1e3799' }}>{sel.label}</div>
+          <div style={{ fontSize: '11px', color: '#6080c4', marginTop: '2px' }}>
+            {sel.level} · {sel.hours} h école/an · Aide État {eur0(aidMap[sel.id])}
+            {sel.sullyFee > 0 ? ` · RAC +${eur0(sel.sullyFee)}` : ' · RAC inclus'}
           </div>
-          {f.sullyFee > 0
-            ? <div style={{ fontSize: '11px', color: value === f.id ? '#fcd34d' : '#d97706' }}>RAC +{eur0(f.sullyFee)}</div>
-            : <div style={{ fontSize: '11px', color: value === f.id ? '#86efac' : '#059669' }}>RAC inclus</div>}
+        </div>
+        <button className="no-print" onClick={() => setOpen(o => !o)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e3799', fontWeight: 700, fontSize: '12px', padding: '4px 8px', flexShrink: 0 }}>
+          {open ? '▲ Fermer' : '✏️ Modifier'}
         </button>
-      ))}
+      </div>
+      {open && (
+        <div className="no-print" style={{ marginTop: '10px', display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '10px' }}>
+          {FORMATIONS.map(f => (
+            <button key={f.id} className={`formation-btn ${value === f.id ? 'active' : ''}`}
+              onClick={() => { onChange(f.id); setOpen(false); }}>
+              <div style={{ fontSize: '22px', marginBottom: '4px' }}>{f.icon}</div>
+              <div style={{ fontWeight: 700, fontSize: '16px' }}>{f.label}</div>
+              <div style={{ fontSize: '11px', opacity: .7, marginTop: '2px' }}>{f.level}</div>
+              <div style={{ fontSize: '11px', marginTop: '6px', opacity: .8 }}>{f.hours} h école/an</div>
+              <div style={{ fontSize: '11px', marginTop: '3px', color: value === f.id ? '#86efac' : '#059669', fontWeight: 600 }}>
+                Aide État {eur0(aidMap[f.id])}
+              </div>
+              {f.sullyFee > 0
+                ? <div style={{ fontSize: '11px', color: value === f.id ? '#fcd34d' : '#d97706' }}>RAC +{eur0(f.sullyFee)}</div>
+                : <div style={{ fontSize: '11px', color: value === f.id ? '#86efac' : '#059669' }}>RAC inclus</div>}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -657,33 +678,58 @@ function ImpactMessage({ r, refSal, rqth }) {
 }
 
 function SpecificFormationPicker({ fId, value, onChange }) {
+  const [open, setOpen] = useState(false);
   const options = SPECIFIC_FORMATIONS[fId] || [];
   if (options.length === 0) return null;
+  const sel = value ? options.find(x => x.id === value) : null;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      {options.map(opt => {
-        const active = value === opt.id;
-        return (
-          <button key={opt.id} onClick={() => onChange(active ? null : opt.id)}
-            style={{
-              textAlign: 'left', padding: '10px 12px', borderRadius: '10px', cursor: 'pointer',
-              border: `2px solid ${active ? '#1e3799' : '#e2e8f0'}`,
-              background: active ? '#eff6ff' : '#fff', transition: 'all .15s',
-            }}>
-            <div style={{ fontWeight: 700, fontSize: '13px', color: active ? '#1e3799' : '#1e293b' }}>
-              {opt.label}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '3px' }}>
-              <span style={{ fontSize: '11px', color: '#64748b' }}>RNCP {opt.rncp}</span>
-              <a href={FC_URL(opt.rncp)} target="_blank" rel="noopener"
-                onClick={e => e.stopPropagation()}
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', border: `2px solid ${sel ? '#1e3799' : '#e2e8f0'}`, background: sel ? '#eff6ff' : '#f8fafc' }}>
+        {sel ? (
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: '13px', color: '#1e3799' }}>{sel.label}</div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '3px' }}>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>RNCP {sel.rncp}</span>
+              <a href={FC_URL(sel.rncp)} target="_blank" rel="noopener" onClick={e => e.stopPropagation()}
                 style={{ fontSize: '11px', color: '#1e3799', fontWeight: 600, textDecoration: 'none' }}>
-                Fiche France Compétences →
+                Fiche FC →
               </a>
             </div>
-          </button>
-        );
-      })}
+          </div>
+        ) : (
+          <div style={{ flex: 1, fontSize: '13px', color: '#94a3b8', fontStyle: 'italic' }}>Calcul générique</div>
+        )}
+        <button className="no-print" onClick={() => setOpen(o => !o)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e3799', fontWeight: 700, fontSize: '12px', padding: '4px 8px', flexShrink: 0 }}>
+          {open ? '▲ Fermer' : sel ? '✏️ Modifier' : '+ Choisir'}
+        </button>
+      </div>
+      {open && (
+        <div className="no-print" style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {sel && (
+            <button onClick={() => { onChange(null); setOpen(false); }}
+              style={{ textAlign: 'left', padding: '8px 12px', borderRadius: '10px', border: '2px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>
+              ✕ Retirer la spécialité (calcul générique)
+            </button>
+          )}
+          {options.map(opt => {
+            const active = value === opt.id;
+            return (
+              <button key={opt.id} onClick={() => { onChange(active ? null : opt.id); if (!active) setOpen(false); }}
+                style={{ textAlign: 'left', padding: '10px 12px', borderRadius: '10px', cursor: 'pointer', border: `2px solid ${active ? '#1e3799' : '#e2e8f0'}`, background: active ? '#eff6ff' : '#fff', transition: 'all .15s' }}>
+                <div style={{ fontWeight: 700, fontSize: '13px', color: active ? '#1e3799' : '#1e293b' }}>{opt.label}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '3px' }}>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>RNCP {opt.rncp}</span>
+                  <a href={FC_URL(opt.rncp)} target="_blank" rel="noopener" onClick={e => e.stopPropagation()}
+                    style={{ fontSize: '11px', color: '#1e3799', fontWeight: 600, textDecoration: 'none' }}>
+                    Fiche FC →
+                  </a>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
