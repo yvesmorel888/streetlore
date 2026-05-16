@@ -285,8 +285,8 @@ function compute(fId, age, yr, bigCompany, refSal, rqth, extraRac, specificHours
 
 // ── FORMATTERS ──────────────────────────────────────────────────────────────
 
-const fr2    = n => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
-const fr0    = n => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n);
+const fr2    = n => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n).replace(/ /g, ' ');
+const fr0    = n => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n).replace(/ /g, ' ');
 const frN    = n => fr0(Math.round(n));
 const eur    = n => `${fr2(n)} €`;
 const eur0   = n => `${fr0(n)} €`;
