@@ -484,8 +484,8 @@ function PresenceBar({ r }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px', color: '#475569' }}>
-            <span>Temps de présence école : <strong style={{ color: '#ef4444' }}>{schoolH + EXAM_H} h</strong></span>
-            <span>Temps de présence entreprise : <strong style={{ color: '#1e3799' }}>{realH} h</strong></span>
+            <span style={{ color: '#475569' }}>Présence école : <strong style={{ color: '#ef4444' }}>{schoolH + EXAM_H} h</strong></span>
+            <span style={{ color: '#475569' }}>Présence entreprise : <strong style={{ color: '#1e3799' }}>{realH} h</strong></span>
           </div>
           <div className="bar-bg">
             <div className="bar-fill" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#1e3799,#3b5bdb)' }} />
@@ -495,8 +495,8 @@ function PresenceBar({ r }) {
           </div>
         </div>
         <div style={{ textAlign: 'center', background: '#eff6ff', borderRadius: '12px', padding: '10px 14px', minWidth: '72px' }}>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: '#1e3799' }}>{pct.toFixed(0)}%</div>
-          <div style={{ fontSize: '11px', color: '#6080c4' }}>présent</div>
+          <div style={{ fontSize: '9px', fontWeight: 600, color: '#6080c4', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: '2px' }}>Présence<br/>entreprise</div>
+          <div style={{ fontSize: '22px', fontWeight: 800, color: '#1e3799', lineHeight: 1.1 }}>{pct.toFixed(0)}%</div>
         </div>
       </div>
 
