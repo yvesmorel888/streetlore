@@ -187,14 +187,51 @@ function ageLabel(age) {
   return          { text: '18 – 20 ans',  cls: 'bg-emerald-100 text-emerald-700' };
 }
 
-function computeSingle(fId, age, yr, bigCompany, refSal, rqth, extraRac, specificHours) {
+function getAgeAt(dob, refDate) {
+  const d = new Date(dob), r = new Date(refDate);
+  let age = r.getFullYear() - d.getFullYear();
+  if (r.getMonth() < d.getMonth() || (r.getMonth() === d.getMonth() && r.getDate() < d.getDate())) age--;
+  return age;
+}
+
+// Calcule le salaire mensuel moyen pondéré sur une année de contrat,
+// en découpant aux anniversaires de 21 et 26 ans.
+function computePreciseSalary(dobStr, contractStartStr, yr) {
+  const dob = new Date(dobStr);
+  const cs  = new Date(contractStartStr);
+  const periodStart = new Date(cs.getFullYear() + (yr - 1), cs.getMonth(), cs.getDate());
+  const periodEnd   = new Date(cs.getFullYear() + yr,       cs.getMonth(), cs.getDate());
+  const turns21 = new Date(dob.getFullYear() + 21, dob.getMonth(), dob.getDate());
+  const turns26 = new Date(dob.getFullYear() + 26, dob.getMonth(), dob.getDate());
+
+  const bps = [periodStart.getTime()];
+  if (turns21 > periodStart && turns21 < periodEnd) bps.push(turns21.getTime());
+  if (turns26 > periodStart && turns26 < periodEnd) bps.push(turns26.getTime());
+  bps.push(periodEnd.getTime());
+
+  const totalDays = (periodEnd - periodStart) / 86400000;
+  let weightedPct = 0;
+  const segments = [];
+  for (let i = 0; i < bps.length - 1; i++) {
+    const s = new Date(bps[i]), e = new Date(bps[i + 1]);
+    const days     = Math.round((bps[i + 1] - bps[i]) / 86400000);
+    const fraction = days / totalDays;
+    const age      = getAgeAt(dob, s);
+    const pct      = getPct(age, yr);
+    weightedPct   += fraction * pct;
+    segments.push({ start: s, end: e, age, pct, days, fraction });
+  }
+  return { weightedPct, segments, monthlyAvg: SMIC_MONTHLY * weightedPct };
+}
+
+function computeSingle(fId, age, yr, bigCompany, refSal, rqth, extraRac, specificHours, preciseMonthly) {
   const f = FORMATIONS.find(x => x.id === fId);
   const { stateAid, agefiph } = getAids(fId, yr, bigCompany, rqth);
   const hours = specificHours ?? f.hours;
 
   const realH      = BASE_H - (hours + EXAM_H);
-  const pct        = getPct(age, yr);
-  const appMonthly = SMIC_MONTHLY * pct;
+  const appMonthly = preciseMonthly != null ? preciseMonthly : SMIC_MONTHLY * getPct(age, yr);
+  const pct        = appMonthly / SMIC_MONTHLY;
   const appAnnual  = appMonthly * 12;
   const appCost    = appAnnual * (1 + CHARGES_APP) + f.sullyFee - stateAid - agefiph + extraRac;
   const hourlyReal = appCost / realH;
@@ -218,10 +255,13 @@ function computeSingle(fId, age, yr, bigCompany, refSal, rqth, extraRac, specifi
   };
 }
 
-function compute(fId, age, yr, bigCompany, refSal, rqth, extraRac, specificHours) {
-  if (yr !== 'avg') return computeSingle(fId, age, yr, bigCompany, refSal, rqth, extraRac, specificHours);
-  const r1 = computeSingle(fId, age, 1, bigCompany, refSal, rqth, extraRac, specificHours);
-  const r2 = computeSingle(fId, age, 2, bigCompany, refSal, rqth, extraRac, specificHours);
+function compute(fId, age, yr, bigCompany, refSal, rqth, extraRac, specificHours, pm1, pm2) {
+  if (yr !== 'avg') {
+    const pm = yr === 1 ? pm1 : yr === 2 ? pm2 : null;
+    return computeSingle(fId, age, yr, bigCompany, refSal, rqth, extraRac, specificHours, pm);
+  }
+  const r1 = computeSingle(fId, age, 1, bigCompany, refSal, rqth, extraRac, specificHours, pm1);
+  const r2 = computeSingle(fId, age, 2, bigCompany, refSal, rqth, extraRac, specificHours, pm2);
   const avg = k => (r1[k] + r2[k]) / 2;
   const appCost        = avg('appCost');
   const hourlyReal     = appCost / r1.realH;
@@ -245,10 +285,11 @@ function compute(fId, age, yr, bigCompany, refSal, rqth, extraRac, specificHours
 
 // ── FORMATTERS ──────────────────────────────────────────────────────────────
 
-const fr2 = n => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
-const fr0 = n => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n);
-const eur  = n => `${fr2(n)} €`;
-const eur0 = n => `${fr0(n)} €`;
+const fr2    = n => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+const fr0    = n => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n);
+const eur    = n => `${fr2(n)} €`;
+const eur0   = n => `${fr0(n)} €`;
+const frDate = d => new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 // ── COMPOSANTS ──────────────────────────────────────────────────────────────
 
@@ -513,9 +554,11 @@ function PresenceBar({ r }) {
   );
 }
 
-function ComparisonTable({ r, refSal, rqth, yr }) {
-  const showAgefiph = rqth && (yr === 1 || yr === 'avg');
+function ComparisonTable({ r, refSal, rqth, yr, preciseData }) {
+  const [salaryOpen, setSalaryOpen] = useState(false);
+  const showAgefiph  = rqth && (yr === 1 || yr === 'avg');
   const showExtraRac = r.extraRac > 0;
+  const hasDetail    = preciseData && preciseData.segments.length > 1;
   return (
     <div className="card" style={{ padding: '20px', overflowX: 'auto' }}>
       <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '14px' }}>
@@ -538,8 +581,32 @@ function ComparisonTable({ r, refSal, rqth, yr }) {
           <tr>
             <td style={{ color: '#64748b' }}>Salaire brut mensuel</td>
             <td className="tr mono" style={{ color: '#334155' }}>{eur(refSal.monthly)}</td>
-            <td className="tr mono" style={{ color: '#1e3799', fontWeight: 600 }}>{eur(r.appMonthly)}</td>
+            <td className="tr mono" style={{ color: '#1e3799', fontWeight: 600 }}>
+              {eur(r.appMonthly)}
+              {hasDetail && (
+                <button onClick={() => setSalaryOpen(o => !o)} className="no-print"
+                  style={{ marginLeft: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#6080c4', fontSize: '10px', padding: 0, fontWeight: 600 }}>
+                  {salaryOpen ? '▲' : '▼'}
+                </button>
+              )}
+            </td>
           </tr>
+          {salaryOpen && hasDetail && (
+            <tr style={{ background: '#f8fafc' }}>
+              <td colSpan="3" style={{ padding: '8px 8px 10px' }}>
+                {preciseData.segments.map((seg, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', padding: '3px 0', color: '#475569', borderBottom: i < preciseData.segments.length - 1 ? '1px solid #e8eef5' : 'none' }}>
+                    <span>{frDate(seg.start)} → {frDate(seg.end)} · {seg.age} ans · {Math.round(seg.pct * 100)} % SMIC · {seg.days} j</span>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{eur(SMIC_MONTHLY * seg.pct)}/mois</span>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginTop: '6px', padding: '4px 6px', background: '#eff6ff', borderRadius: '6px', color: '#1e3799', fontWeight: 700 }}>
+                  <span>Moyenne pondérée</span>
+                  <span style={{ fontFamily: 'monospace' }}>{eur(preciseData.monthlyAvg)}/mois</span>
+                </div>
+              </td>
+            </tr>
+          )}
           <tr>
             <td style={{ color: '#64748b' }}>Salaire brut annuel</td>
             <td className="tr mono" style={{ color: '#334155' }}>{eur(r.refAnnual)}</td>
@@ -734,17 +801,54 @@ function SpecificFormationPicker({ fId, value, onChange }) {
   );
 }
 
+function SalaryYearDetail({ label, data }) {
+  const [open, setOpen] = useState(false);
+  const multi = data.segments.length > 1;
+  return (
+    <div style={{ marginTop: '8px', border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+      <button onClick={() => multi && setOpen(o => !o)}
+        style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', background: '#f8fafc', border: 'none', cursor: multi ? 'pointer' : 'default', textAlign: 'left', gap: '8px' }}>
+        <span style={{ fontWeight: 700, fontSize: '12px', color: '#475569', flexShrink: 0 }}>{label}</span>
+        <span style={{ fontFamily: 'monospace', fontSize: '13px', color: '#1e3799', fontWeight: 700 }}>
+          {eur(data.monthlyAvg)}/mois{multi ? ' moy.' : ''}
+        </span>
+        {multi && <span className="no-print" style={{ color: '#94a3b8', fontSize: '10px', flexShrink: 0 }}>{open ? '▲' : '▼ détail'}</span>}
+      </button>
+      {open && multi && (
+        <div style={{ padding: '8px 12px', background: '#fff', borderTop: '1px solid #e8eef5' }}>
+          {data.segments.map((seg, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', padding: '5px 0', borderBottom: i < data.segments.length - 1 ? '1px solid #f1f5f9' : 'none', gap: '8px' }}>
+              <div style={{ color: '#64748b' }}>
+                <div>{frDate(seg.start)} → {frDate(seg.end)}</div>
+                <div style={{ marginTop: '2px', color: '#94a3b8' }}>{seg.age} ans · {Math.round(seg.pct * 100)} % SMIC · {seg.days} j</div>
+              </div>
+              <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#334155', flexShrink: 0 }}>{eur(SMIC_MONTHLY * seg.pct)}/mois</span>
+            </div>
+          ))}
+          <div style={{ marginTop: '6px', padding: '5px 8px', background: '#eff6ff', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+            <span style={{ color: '#1e3799', fontWeight: 700 }}>Moyenne pondérée</span>
+            <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#1e3799' }}>{eur(data.monthlyAvg)}/mois</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── APP ──────────────────────────────────────────────────────────────────────
 
 function App() {
-  const [formation,   setFormation  ] = useState('bts');
-  const [specificId,  setSpecificId ] = useState(null);
-  const [bigCompany,  setBigCompany ] = useState(false);
-  const [age,         setAge        ] = useState(DEFAULT_AGE['bts']);
-  const [yr,          setYr         ] = useState(1);
-  const [refSalId,    setRefSalId   ] = useState(DEFAULT_REF['bts']);
-  const [rqth,        setRqth       ] = useState(false);
-  const [extraRac,    setExtraRac   ] = useState(0);
+  const [formation,     setFormation    ] = useState('bts');
+  const [specificId,    setSpecificId   ] = useState(null);
+  const [bigCompany,    setBigCompany   ] = useState(false);
+  const [age,           setAge          ] = useState(DEFAULT_AGE['bts']);
+  const [yr,            setYr           ] = useState(1);
+  const [refSalId,      setRefSalId     ] = useState(DEFAULT_REF['bts']);
+  const [rqth,          setRqth         ] = useState(false);
+  const [extraRac,      setExtraRac     ] = useState(0);
+  const [useDateMode,   setUseDateMode  ] = useState(false);
+  const [dob,           setDob          ] = useState('');
+  const [contractStart, setContractStart] = useState('');
 
   const handleFormationChange = (fId) => {
     setFormation(fId);
@@ -754,15 +858,31 @@ function App() {
     if (DURATION[fId] === 1) setYr(1);
   };
 
-  const refSal       = REF_SALARIES.find(r => r.id === refSalId);
-  const defaultRefId = DEFAULT_REF[formation];
-  const specificFm   = specificId ? (SPECIFIC_FORMATIONS[formation] || []).find(x => x.id === specificId) : null;
+  const refSal        = REF_SALARIES.find(r => r.id === refSalId);
+  const defaultRefId  = DEFAULT_REF[formation];
+  const specificFm    = specificId ? (SPECIFIC_FORMATIONS[formation] || []).find(x => x.id === specificId) : null;
   const specificHours = specificFm ? specificFm.hours : null;
 
-  const r = useMemo(
-    () => compute(formation, age, yr, bigCompany, refSal, rqth, extraRac, specificHours),
-    [formation, age, yr, bigCompany, refSal, rqth, extraRac, specificHours]
+  const preciseYr1 = useMemo(
+    () => useDateMode && dob && contractStart ? computePreciseSalary(dob, contractStart, 1) : null,
+    [useDateMode, dob, contractStart]
   );
+  const preciseYr2 = useMemo(
+    () => useDateMode && dob && contractStart && DURATION[formation] === 2 ? computePreciseSalary(dob, contractStart, 2) : null,
+    [useDateMode, dob, contractStart, formation]
+  );
+
+  const pm1 = preciseYr1 ? preciseYr1.monthlyAvg : null;
+  const pm2 = preciseYr2 ? preciseYr2.monthlyAvg : null;
+
+  const r = useMemo(
+    () => compute(formation, age, yr, bigCompany, refSal, rqth, extraRac, specificHours, pm1, pm2),
+    [formation, age, yr, bigCompany, refSal, rqth, extraRac, specificHours, pm1, pm2]
+  );
+
+  const currentPreciseData = useDateMode
+    ? (yr === 1 ? preciseYr1 : yr === 2 ? preciseYr2 : null)
+    : null;
 
   return (
     <div style={{ minHeight: '100vh', background: '#f1f5f9' }}>
@@ -805,8 +925,46 @@ function App() {
             </div>
 
             <div className="card" style={{ padding: '20px' }}>
-              <StepLabel n="3" text="Âge de l'Apprenti" />
-              <AgePicker value={age} onChange={setAge} />
+              <StepLabel n="3" text="Rémunération de l'apprenti" />
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                <button className={`toggle-btn ${!useDateMode ? 'active' : ''}`}
+                  style={{ padding: '9px 8px', fontSize: '12px' }} onClick={() => setUseDateMode(false)}>
+                  Âge approx.
+                </button>
+                <button className={`toggle-btn ${useDateMode ? 'active' : ''}`}
+                  style={{ padding: '9px 8px', fontSize: '12px' }} onClick={() => setUseDateMode(true)}>
+                  📅 Dates précises
+                </button>
+              </div>
+              {!useDateMode ? (
+                <AgePicker value={age} onChange={setAge} />
+              ) : (
+                <div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                    {[['Date de naissance', dob, setDob], ['Début de contrat', contractStart, setContractStart]].map(([lbl, val, set]) => (
+                      <label key={lbl} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>{lbl}</span>
+                        <input type="date" value={val} onChange={e => set(e.target.value)}
+                          style={{ padding: '8px 10px', border: '2px solid #e2e8f0', borderRadius: '10px', fontSize: '13px', outline: 'none', width: '100%', boxSizing: 'border-box' }}
+                          onFocus={e => e.target.style.borderColor = '#1e3799'}
+                          onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
+                      </label>
+                    ))}
+                  </div>
+                  {preciseYr1 ? (
+                    <div>
+                      <SalaryYearDetail label="1re Année" data={preciseYr1} />
+                      {DURATION[formation] === 2 && preciseYr2 && (
+                        <SalaryYearDetail label="2e Année" data={preciseYr2} />
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', padding: '8px 0', fontStyle: 'italic' }}>
+                      Entrez les deux dates pour afficher le calcul précis
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="card" style={{ padding: '20px' }}>
@@ -857,7 +1015,7 @@ function App() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <PresenceBar r={r} />
             <RefSalaryToggle value={refSalId} onChange={setRefSalId} defaultId={defaultRefId} />
-            <ComparisonTable r={r} refSal={refSal} rqth={rqth} yr={yr} />
+            <ComparisonTable r={r} refSal={refSal} rqth={rqth} yr={yr} preciseData={currentPreciseData} />
             <EconomyCards r={r} />
             <CostBars r={r} refSal={refSal} />
             <ImpactMessage r={r} refSal={refSal} rqth={rqth} />
