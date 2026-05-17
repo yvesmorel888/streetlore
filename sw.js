@@ -1,4 +1,4 @@
-const CACHE = 'streetlore-v17';
+const CACHE = 'streetlore-v18';
 const SHELL = ['./', './index.html', './style.css', './app.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
@@ -17,7 +17,8 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = e.request.url;
-  // Toujours réseau pour les APIs externes
+
+  // Toujours réseau pour les APIs externes — pas de mise en cache
   if (
     url.includes('nominatim') ||
     url.includes('wikipedia') ||
@@ -25,10 +26,21 @@ self.addEventListener('fetch', e => {
     url.includes('overpass') ||
     url.includes('openplaques') ||
     url.includes('commons.wikimedia') ||
+    url.includes('data.culture.gouv') ||
     url.includes('unpkg.com') ||
     url.includes('fonts.goog')
   ) return;
+
+  // Réseau d'abord pour les fichiers de l'app (toujours la dernière version)
+  // Fallback sur le cache uniquement si hors ligne
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    fetch(e.request)
+      .then(response => {
+        // Mettre à jour le cache avec la version fraîche
+        const clone = response.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+        return response;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
