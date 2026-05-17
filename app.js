@@ -130,9 +130,13 @@ async function getEtymology(street,lat,lon){
     const d=await overpass(ql);
     if(!d.elements?.length) return null;
     const t=d.elements[0].tags;
+    // Récupération du ou des anciens noms
+    const oldParts=[t['old_name'],t['old_name:fr']].filter(Boolean);
+    const oldName=oldParts.length?oldParts.join(' · '):null;
     return{
-      wikidata: t['name:etymology:wikidata']||null,
-      wikipedia:t['wikipedia']||t['name:etymology:wikipedia']||null,
+      wikidata:  t['name:etymology:wikidata']||null,
+      wikipedia: t['wikipedia']||t['name:etymology:wikipedia']||null,
+      oldName,
     };
   }catch{return null;}
 }
@@ -365,9 +369,23 @@ async function findBestWikiArticle(simple,full,city,lat,lon){
 // RECHERCHE PRINCIPALE — Wikipedia
 // ═══════════════════════════════════════════════════════════════════════════
 
+async function fetchOldName(full,lat,lon){
+  if(!lat||!lon) return null;
+  try{
+    const etym=await getEtymology(full,lat,lon);
+    return etym?.oldName||null;
+  }catch{return null;}
+}
+
 async function fetchStreetInfo(simple,full,city,lat,lon){
-  const wiki=await findBestWikiArticle(simple,full,city,lat,lon).catch(()=>null);
-  return{wiki};
+  const[wikiRes,oldNameRes]=await Promise.allSettled([
+    findBestWikiArticle(simple,full,city,lat,lon),
+    fetchOldName(full,lat,lon),
+  ]);
+  return{
+    wiki:    wikiRes.status==='fulfilled'?wikiRes.value:null,
+    oldName: oldNameRes.status==='fulfilled'?oldNameRes.value:null,
+  };
 }
 
 async function fetchCityInfo(city){
@@ -556,11 +574,13 @@ function applyWikiSection(res,name,city){
     let html='';
     if(res.wiki.thumbnail?.source) html+=`<img src="${res.wiki.thumbnail.source}" class="wiki-thumb" alt="${name}" loading="lazy">`;
     html+=`<p class="wiki-text">${extract}</p>`;
+    if(res.oldName) html+=`<p class="old-name">📜 Anciennement : <strong>${res.oldName}</strong></p>`;
     wikiEl.innerHTML=html;
   }else{
     badge.className='source-badge dim';
     badge.textContent='◌ Aucune information Wikipedia trouvée';
-    wikiEl.innerHTML=`<div class="empty"><p class="empty-ico">🔍</p><p>Aucune information disponible pour <strong>${name}</strong>.<br>Utilisez les liens ci-dessous pour en savoir plus.</p></div>`;
+    const oldNameHtml=res.oldName?`<p class="old-name" style="margin-top:1rem">📜 Anciennement : <strong>${res.oldName}</strong></p>`:'';
+    wikiEl.innerHTML=`<div class="empty"><p class="empty-ico">🔍</p><p>Aucune information disponible pour <strong>${name}</strong>.<br>Utilisez les liens ci-dessous pour en savoir plus.</p></div>${oldNameHtml}`;
   }
 }
 

@@ -254,9 +254,8 @@ h1 {
 .source-badge.dim  { background: rgba(148,163,184,.07); border: 1px solid var(--border); color: var(--muted); }
 .source-badge.ai   { background: rgba(139,92,246,.1); border: 1px solid rgba(139,92,246,.3); color: #c4b5fd; }
 
-/* Debug erreur Gemini */
-.gemini-debug { font-size: .78rem; color: #f87171; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); border-radius: var(--rsm); padding: .6rem .875rem; margin-bottom: .875rem; line-height: 1.5; }
-.gemini-debug code { font-family: monospace; font-size: .76rem; word-break: break-all; }
+/* Ancien nom de rue (OSM old_name) */
+.old-name { margin-top: .875rem; padding-top: .75rem; border-top: 1px solid var(--border); font-size: .82rem; color: var(--muted); }
 
 /* Cards */
 .card { background: var(--surf); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
