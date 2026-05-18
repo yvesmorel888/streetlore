@@ -435,21 +435,21 @@ function RQTHToggle({ value, onChange }) {
 
 function ExtraRACInput({ value, onChange, duration }) {
   return (
-    <div>
+    <div style={{ minWidth: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <input
           type="number" min={0} step={50} value={value || ''}
           placeholder="0"
           onChange={e => onChange(Math.max(0, parseInt(e.target.value) || 0))}
           style={{
-            flex: 1, padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '10px',
+            flex: 1, minWidth: 0, padding: '10px 14px', border: '2px solid #e2e8f0', borderRadius: '10px',
             fontSize: '16px', fontWeight: 700, textAlign: 'right', outline: 'none',
             color: '#1e293b', transition: 'border-color .15s',
           }}
           onFocus={e => e.target.style.borderColor = '#1e3799'}
           onBlur={e => e.target.style.borderColor = '#e2e8f0'}
         />
-        <span style={{ fontWeight: 700, color: '#475569', fontSize: '15px', flexShrink: 0 }}>€ / contrat</span>
+        <span style={{ fontWeight: 700, color: '#475569', fontSize: '15px', flexShrink: 0 }}>€&nbsp;/ contrat</span>
       </div>
       <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px', lineHeight: 1.5 }}>
         Reste à charge supplémentaire facturé par l'organisme de formation sur la durée du contrat.
@@ -986,7 +986,7 @@ function App() {
               <RQTHToggle value={rqth} onChange={setRqth} />
             </div>
 
-            <div className="card" style={{ padding: '20px' }}>
+            <div className="card" style={{ padding: '20px', overflow: 'hidden' }}>
               <StepLabel n="6" text="RAC supplémentaire" />
               <ExtraRACInput value={extraRac} onChange={setExtraRac} duration={DURATION[formation]} />
             </div>
