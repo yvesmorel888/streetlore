@@ -228,12 +228,14 @@ function computeSingle(fId, age, yr, bigCompany, refSal, rqth, extraRac, specifi
   const f = FORMATIONS.find(x => x.id === fId);
   const { stateAid, agefiph } = getAids(fId, yr, bigCompany, rqth);
   const hours = specificHours ?? f.hours;
+  const sullyFeeYear    = yr === 1 ? f.sullyFee : 0;
+  const extraRacPerYear = extraRac / DURATION[fId];
 
-  const realH      = BASE_H - (hours + EXAM_H);
+  const realH      = BASE_H - hours; // EXAM_H déjà inclus dans les heures école
   const appMonthly = preciseMonthly != null ? preciseMonthly : SMIC_MONTHLY * getPct(age, yr);
   const pct        = appMonthly / SMIC_MONTHLY;
   const appAnnual  = appMonthly * 12;
-  const appCost    = appAnnual * (1 + CHARGES_APP) + f.sullyFee - stateAid - agefiph + extraRac;
+  const appCost    = appAnnual * (1 + CHARGES_APP) + sullyFeeYear - stateAid + extraRacPerYear;
   const hourlyReal = appCost / realH;
 
   const etpMonthly = ((hourlyReal * BASE_H) / (1 + refSal.charges)) / 12;
@@ -246,7 +248,7 @@ function computeSingle(fId, age, yr, bigCompany, refSal, rqth, extraRac, specifi
   const etpRatio        = (etpMonthly / refSal.monthly) * 100;
 
   return {
-    f, stateAid, agefiph, extraRac, realH, pct, appMonthly, appAnnual, appCost,
+    f, stateAid, agefiph, sullyFeeYear, extraRac: extraRacPerYear, realH, pct, appMonthly, appAnnual, appCost,
     hourlyReal, etpMonthly, etpRatio,
     refAnnual, refCost, refHourly,
     hourlySaving, hourlySavingPct,
@@ -274,7 +276,7 @@ function compute(fId, age, yr, bigCompany, refSal, rqth, extraRac, specificHours
   const etpRatio       = (etpMonthly / refSal.monthly) * 100;
   return {
     f: r1.f, isAvg: true,
-    stateAid: avg('stateAid'), agefiph: avg('agefiph'), extraRac,
+    stateAid: avg('stateAid'), agefiph: avg('agefiph'), sullyFeeYear: avg('sullyFeeYear'), extraRac: r1.extraRac,
     realH: r1.realH, pct: avg('pct'),
     appMonthly: avg('appMonthly'), appAnnual: avg('appAnnual'),
     appCost, hourlyReal, etpMonthly, etpRatio,
@@ -287,6 +289,7 @@ function compute(fId, age, yr, bigCompany, refSal, rqth, extraRac, specificHours
 
 const fr2    = n => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n).replace(/ /g, ' ');
 const fr0    = n => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n).replace(/ /g, ' ');
+const fr1    = n => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(n).replace(/ /g, ' ');
 const frN    = n => fr0(Math.round(n));
 const eur    = n => `${fr2(n)} €`;
 const eur0   = n => `${fr0(n)} €`;
@@ -423,7 +426,7 @@ function RQTHToggle({ value, onChange }) {
       </div>
       {value && (
         <div style={{ marginTop: '10px', padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', fontSize: '12px', color: '#92400e', lineHeight: 1.7 }}>
-          <strong>1re année :</strong> Aide État <strong>{eur0(RQTH_ETAT)}</strong> + Agefiph <strong>{eur0(RQTH_AGEFIPH)}</strong> = <strong>{eur0(RQTH_ETAT + RQTH_AGEFIPH)}</strong> cumulables<br/>
+          <strong>1re année :</strong> Aide État <strong>{eur0(RQTH_ETAT)}</strong> — Agefiph jusqu'à <strong>{eur0(RQTH_AGEFIPH)}</strong> <em>(remboursement de frais, pour mémoire)</em><br/>
           <strong>2e année :</strong> Aucune aide (règle commune)<br/>
           <span style={{ color: '#b45309', fontSize: '11px' }}>Quelle que soit la taille de l'entreprise et le niveau de diplôme</span>
         </div>
@@ -432,7 +435,7 @@ function RQTHToggle({ value, onChange }) {
   );
 }
 
-function ExtraRACInput({ value, onChange }) {
+function ExtraRACInput({ value, onChange, duration }) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -448,10 +451,16 @@ function ExtraRACInput({ value, onChange }) {
           onFocus={e => e.target.style.borderColor = '#1e3799'}
           onBlur={e => e.target.style.borderColor = '#e2e8f0'}
         />
-        <span style={{ fontWeight: 700, color: '#475569', fontSize: '15px', flexShrink: 0 }}>€ / an</span>
+        <span style={{ fontWeight: 700, color: '#475569', fontSize: '15px', flexShrink: 0 }}>€ / contrat</span>
       </div>
-      <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '6px' }}>
-        Équipements, tutorat, frais annexes…
+      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px', lineHeight: 1.5 }}>
+        Reste à charge supplémentaire facturé par l'organisme de formation sur la durée du contrat.
+        {duration > 1 && value > 0 && (
+          <span style={{ color: '#475569', fontWeight: 600 }}> Soit {eur0(value / duration)} / an.</span>
+        )}
+      </div>
+      <div style={{ fontSize: '12px', color: '#059669', marginTop: '4px', fontWeight: 600 }}>
+        ✓ Sully Business School ne facture aucun reste à charge supplémentaire
       </div>
     </div>
   );
@@ -508,7 +517,7 @@ function CalcSep() {
 function PresenceBar({ r }) {
   const { realH } = r;
   const pct = (realH / BASE_H) * 100;
-  const schoolH = BASE_H - EXAM_H - realH;
+  const schoolH = BASE_H - realH;
   const [open, setOpen] = useState(false);
 
   return (
@@ -526,7 +535,7 @@ function PresenceBar({ r }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px', color: '#475569' }}>
-            <span style={{ color: '#475569' }}>Présence école : <strong style={{ color: '#ef4444' }}>{frN(schoolH + EXAM_H)} h</strong></span>
+            <span style={{ color: '#475569' }}>Présence école : <strong style={{ color: '#ef4444' }}>{frN(schoolH)} h</strong></span>
             <span style={{ color: '#475569' }}>Présence entreprise : <strong style={{ color: '#1e3799' }}>{frN(realH)} h</strong></span>
           </div>
           <div className="bar-bg">
@@ -538,17 +547,16 @@ function PresenceBar({ r }) {
         </div>
         <div style={{ textAlign: 'center', background: '#eff6ff', borderRadius: '12px', padding: '10px 14px', minWidth: '72px' }}>
           <div style={{ fontSize: '9px', fontWeight: 600, color: '#6080c4', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: '2px' }}>Présence<br/>entreprise</div>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: '#1e3799', lineHeight: 1.1 }}>{pct.toFixed(0)}%</div>
+          <div style={{ fontSize: '22px', fontWeight: 800, color: '#1e3799', lineHeight: 1.1 }}>{fr0(pct)}%</div>
         </div>
       </div>
 
       {open && (
         <div style={{ marginTop: '18px', paddingTop: '16px', borderTop: '2px solid #e8eef5' }}>
           <CalcRow label="Base légale annuelle" val={`${frN(BASE_H)} h`} />
-          <CalcRow label="Heures de formation (école)" op="−" val={`${frN(schoolH)} h`} />
-          <CalcRow label="Heures d'examen" op="−" val={`${EXAM_H} h`} />
+          <CalcRow label={`Formation école (dont ${EXAM_H} h prépa examen)`} op="−" val={`${frN(schoolH)} h`} />
           <CalcSep />
-          <CalcRow label="Temps de présence entreprise" op="=" val={`${frN(realH)} h (${pct.toFixed(1)} %)`} bold />
+          <CalcRow label="Temps de présence entreprise" op="=" val={`${frN(realH)} h (${fr1(pct)} %)`} bold />
         </div>
       )}
     </div>
@@ -622,7 +630,7 @@ function ComparisonTable({ r, refSal, rqth, yr, preciseData }) {
             <td style={{ color: '#64748b' }}>Reste à charge obligatoire</td>
             <td className="tr" style={{ color: '#94a3b8' }}>—</td>
             <td className="tr mono" style={{ color: r.f.sullyFee > 0 ? '#d97706' : '#059669', fontWeight: 600 }}>
-              {r.f.sullyFee > 0 ? `+ ${eur(r.f.sullyFee)}` : '✓ Inclus'}
+              {r.sullyFeeYear > 0 ? `+ ${eur(r.sullyFeeYear)}` : r.f.sullyFee > 0 ? `✓ Compris (${r.isAvg ? 'moy.' : 'an 1'})` : '✓ Inclus'}
             </td>
           </tr>
           <tr>
@@ -635,10 +643,12 @@ function ComparisonTable({ r, refSal, rqth, yr, preciseData }) {
             </td>
           </tr>
           {showAgefiph && (
-            <tr className="hl-amber">
-              <td style={{ color: '#92400e' }}>Aide Agefiph (RQTH)</td>
+            <tr style={{ background: '#fffbeb' }}>
+              <td style={{ color: '#92400e', fontSize: '13px' }}>
+                Aide Agefiph (RQTH) <em style={{ fontWeight: 400, fontSize: '11px' }}>— pour mémoire, remboursement de frais</em>
+              </td>
               <td className="tr" style={{ color: '#94a3b8' }}>—</td>
-              <td className="tr mono" style={{ color: '#d97706', fontWeight: 600 }}>− {eur(r.agefiph)}</td>
+              <td className="tr" style={{ color: '#d97706', fontStyle: 'italic', fontSize: '12px' }}>jusqu'à {eur0(RQTH_AGEFIPH)}</td>
             </tr>
           )}
           {showExtraRac && (
@@ -684,7 +694,7 @@ function EconomyCards({ r }) {
       <div className="card" style={{ padding: '18px', textAlign: 'center' }}>
         <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '6px' }}>Gain sur le coût horaire</div>
         <div style={{ fontSize: '26px', fontWeight: 800, color: r.hourlySavingPct > 0 ? '#059669' : '#dc2626' }}>
-          {r.hourlySavingPct > 0 ? '−' : '+'}{Math.abs(r.hourlySavingPct).toFixed(1)} %
+          {r.hourlySavingPct > 0 ? '−' : '+'}{fr1(Math.abs(r.hourlySavingPct))} %
         </div>
         <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>vs. coût horaire de référence</div>
       </div>
@@ -731,7 +741,7 @@ function ImpactMessage({ r, refSal, rqth }) {
               {eur(r.etpMonthly)} / mois
             </span>
             {', '}soit{' '}
-            <span style={{ fontWeight: 800, color: '#fde047' }}>{r.etpRatio.toFixed(0)} %</span>
+            <span style={{ fontWeight: 800, color: '#fde047' }}>{fr0(r.etpRatio)} %</span>
             {' '}du salaire de référence{' '}
             <span style={{ fontWeight: 600, color: '#bfdbfe' }}>({refSal.sublabel} à {eur0(refSal.monthly)} / mois)</span>
             {' '}pour <strong>{frN(r.realH)} h</strong> de présence productive annuelle.
@@ -980,7 +990,7 @@ function App() {
 
             <div className="card" style={{ padding: '20px' }}>
               <StepLabel n="6" text="RAC supplémentaire" />
-              <ExtraRACInput value={extraRac} onChange={setExtraRac} />
+              <ExtraRACInput value={extraRac} onChange={setExtraRac} duration={DURATION[formation]} />
             </div>
 
             {/* Récapitulatif */}
@@ -1032,9 +1042,16 @@ function App() {
         </div>
       </main>
 
-      <footer style={{ textAlign: 'center', padding: '16px', fontSize: '12px', color: '#94a3b8', borderTop: '1px solid #e2e8f0', background: '#fff' }}>
+      <footer style={{ textAlign: 'center', padding: '20px 16px', fontSize: '12px', color: '#94a3b8', borderTop: '1px solid #e2e8f0', background: '#fff' }}>
         <strong>Sully Business School</strong> · Simulateur ROI Apprentissage 2026/2027 ·
         Base légale {frN(BASE_H)} h/an · Données indicatives, hors cas particuliers
+        <div style={{ marginTop: '8px', color: '#94a3b8', lineHeight: 1.7 }}>
+          Ces indications sont données à titre indicatif et n'ont aucune valeur contractuelle.<br/>
+          Ce calculateur est la propriété de{' '}
+          <a href="http://ltpsully.com" target="_blank" rel="noopener" style={{ color: '#1e3799', fontWeight: 600 }}>Sully Business School</a>
+          {' '}·{' '}
+          <a href="mailto:contact@esully.fr" style={{ color: '#1e3799' }}>Signaler une anomalie ou poser une question</a>
+        </div>
       </footer>
 
     </div>
