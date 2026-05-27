@@ -88,6 +88,33 @@
     .tr { text-align: right; }
     .mono { font-family: 'SF Mono', 'Fira Mono', monospace; }
 
+    details.faq-item { border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; overflow: hidden; }
+    details.faq-item[open] { box-shadow: 0 4px 16px rgba(30,55,153,.1); }
+    details.faq-item summary {
+      padding: 16px 20px; cursor: pointer; font-weight: 700; font-size: 15px;
+      color: #0c1f4d; list-style: none; display: flex; justify-content: space-between;
+      align-items: center; user-select: none;
+    }
+    details.faq-item summary::-webkit-details-marker { display: none; }
+    details.faq-item summary::after {
+      content: '▶'; font-size: 11px; color: #1e3799;
+      transition: transform .3s; flex-shrink: 0; margin-left: 12px;
+    }
+    details.faq-item[open] summary::after { transform: rotate(90deg); }
+    details.faq-item summary:hover { background: #f8faff; }
+    .faq-body { padding: 0 20px 18px; font-size: 14px; color: #374151; line-height: 1.7; }
+    .faq-body p { margin: 0 0 10px; }
+    .faq-body p:last-child { margin-bottom: 0; }
+    .faq-body ul { margin: 0 0 10px; padding-left: 20px; }
+    .faq-body li { margin-bottom: 8px; }
+    .faq-body a { color: #1e3799; font-weight: 500; }
+    .faq-body a:hover { text-decoration: underline; }
+    .faq-blockquote {
+      border-left: 4px solid #1e3799; background: #eff6ff;
+      border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 0;
+      font-size: 14px; color: #1e3a5f; line-height: 1.7;
+    }
+
     @media print {
       .no-print { display: none !important; }
       body { background: white; }
@@ -1096,6 +1123,109 @@ function App() {
 
         </div>
       </main>
+
+      {/* ── GUIDE & FAQ RECRUTEURS ── */}
+      <section style={{ maxWidth: '960px', margin: '0 auto', padding: '0 16px 48px' }}>
+
+        <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0c1f4d', margin: '0 0 6px' }}>
+          Tout savoir sur le coût et le cadre légal de l'alternance : Le Guide des Recruteurs
+        </h2>
+        <p style={{ fontSize: '14px', color: '#374151', lineHeight: 1.6, margin: '0 0 20px' }}>
+          Recruter un alternant issu de <strong>Sully Enseignement Supérieur</strong> ou de{' '}
+          <strong>Sully Business School</strong> à Marseille est un excellent choix stratégique pour dynamiser vos
+          équipes. Voici le récapitulatif des grands principes qui régissent l'aspect financier et réglementaire
+          de votre contrat.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+
+          {/* 1 — Mode d'emploi */}
+          <details className="faq-item">
+            <summary>🔍 1. Mode d'emploi : Comment utiliser ce simulateur et quels sont les paramètres ?</summary>
+            <div className="faq-body">
+              <p>Notre simulateur a été pensé pour coller au plus près de la réalité économique des entreprises, tout en s'adaptant précisément à votre projet de recrutement.</p>
+              <ul>
+                <li>
+                  <strong>Le choix de la formation (Générique ou Spécifique) :</strong> L'outil vous permet d'opter pour un calcul sur une filière générique ou de sélectionner directement l'une des formations spécialisées dispensées sur notre campus marseillais. <strong>L'intérêt de préciser la formation Sully est de déterminer automatiquement votre temps de présence réel en entreprise, calculé en fonction du nombre d'heures réelles de formation à Sully.</strong>
+                  <br/><small>Nos formations disponibles : <a href="https://www.ltpsully.com/bts/" target="_blank" rel="noopener noreferrer">BTS MCO</a>, <a href="https://www.ltpsully.com/bts/" target="_blank" rel="noopener noreferrer">BTS NDRC</a>, <a href="https://www.ltpsully.com/bts/" target="_blank" rel="noopener noreferrer">BTS GPME</a>, <a href="https://www.ltpsully.com/bts/" target="_blank" rel="noopener noreferrer">BTS Assurance</a>, <a href="https://www.ltpsully.com/bts/" target="_blank" rel="noopener noreferrer">BTS Comptabilité et Gestion</a>, <a href="https://www.ltpsully.com/bts/" target="_blank" rel="noopener noreferrer">Titre Pro Comptable</a>, <a href="https://www.ltpsully.com/bts/" target="_blank" rel="noopener noreferrer">Titre Pro Gestionnaire de paie</a>, <a href="https://www.ltpsully.com/bts/" target="_blank" rel="noopener noreferrer">Titre Pro Assistant(e) de Direction</a>, <a href="https://www.ltpsully.com/bachelors/" target="_blank" rel="noopener noreferrer">Bachelor Banque et Assurance</a>, <a href="https://www.ltpsully.com/bachelors/" target="_blank" rel="noopener noreferrer">Bachelor CMRH (Ressources Humaines)</a>, <a href="https://www.ltpsully.com/bachelors/" target="_blank" rel="noopener noreferrer">Bachelor Contrôleur de Gestion</a>, <a href="https://www.ltpsully.com/bachelors/" target="_blank" rel="noopener noreferrer">Bachelor Community Manager</a>, <a href="https://www.ltpsully.com/bachelors/" target="_blank" rel="noopener noreferrer">Bachelor Responsable du Développement Commercial</a>, <a href="https://www.ltpsully.com/bachelors/" target="_blank" rel="noopener noreferrer">Bachelor Responsable d'Affaires Immobilières</a>, <a href="https://www.ltpsully.com/niveaux/bac-4-5-niveau-7/" target="_blank" rel="noopener noreferrer">Mastère Manager Commercial et Marketing</a>, <a href="https://www.ltpsully.com/filieres/gestion-rh-marseille/" target="_blank" rel="noopener noreferrer">Mastère Manager en Ressources Humaines</a>.</small>
+                </li>
+                <li>
+                  <strong>Deux niveaux de précision pour le profil :</strong> Pour tester rapidement un budget, vous pouvez indiquer simplement l'âge théorique du candidat. Pour une étude d'une précision chirurgicale, l'outil vous permet de renseigner sa date de naissance exacte ainsi que la date précise de début du contrat. <strong>Dans ce second cas, le simulateur prend parfaitement en compte un éventuel changement de tranche d'âge en cours d'année.</strong>
+                </li>
+                <li>
+                  <strong>Le calcul du ROI :</strong> Au-delà du coût résiduel, ce simulateur met en balance le coût réel de l'alternant face à sa contribution productive estimée dans votre structure, vous permettant de mesurer instantanément le bénéfice économique de cette collaboration.
+                </li>
+              </ul>
+            </div>
+          </details>
+
+          {/* 2 — Salaire */}
+          <details className="faq-item">
+            <summary>💶 2. Quelles sont les principales règles relatives au salaire des alternants post-bac ?</summary>
+            <div className="faq-body">
+              <p>La rémunération minimale d'un alternant est fixée par la loi selon un pourcentage du SMIC. Le salaire évolue selon deux critères majeurs : l'âge de l'alternant et son avancement dans le cycle de formation (1re, 2e ou 3e année de contrat).</p>
+              <p><strong>Exclusivité Secteur Privé :</strong> Attention, ce simulateur est configuré <strong>uniquement pour le secteur privé</strong>. L'apprenti y est exonéré de la totalité des cotisations salariales d'origine légale et conventionnelle pour la part de sa rémunération inférieure ou égale à 79 % du SMIC. Ce simulateur ne gère pas les règles de la fonction publique.</p>
+            </div>
+          </details>
+
+          {/* 3 — Période d'essai */}
+          <details className="faq-item">
+            <summary>⏱️ 3. Quelle est la période d'essai d'un alternant ?</summary>
+            <div className="faq-body">
+              <p>La rupture du contrat en début de parcours obéit à des règles strictes destinées à sécuriser la phase d'intégration sur le terrain.</p>
+              <ul>
+                <li><strong>Le principe des 45 jours (Contrat d'Apprentissage) :</strong> La loi prévoit une période de rupture unilatérale libre fixée à 45 jours de présence effective de l'apprenti en entreprise.</li>
+                <li><strong>Attention au calendrier :</strong> Les jours durant lesquels l'alternant est présent sur le campus de Sully pour suivre ses cours théoriques ne comptent pas dans ce calcul. Durant ces 45 jours réels en entreprise, le contrat peut être rompu par l'une ou l'autre des parties sans motif, sans préavis et sans indemnité.</li>
+              </ul>
+            </div>
+          </details>
+
+          {/* 4 — Simulateur officiel */}
+          <details className="faq-item">
+            <summary>🌐 4. Un simulateur officiel du gouvernement existe-t-il ?</summary>
+            <div className="faq-body">
+              <p>Oui, l'État propose sa propre plateforme sur le portail officiel du Ministère du Travail dédié à l'alternance via le site <a href="https://www.alternance.emploi.gouv.fr" target="_blank" rel="noopener noreferrer">alternance.emploi.gouv.fr</a>.</p>
+              <p><strong>Quelle est la différence avec notre outil ?</strong> Le site gouvernemental se limite à un calcul purement réglementaire et administratif de la rémunération brute. Notre simulateur <strong>Sully Enseignement Supérieur / Sully Business School</strong> va beaucoup plus loin pour les dirigeants : il intègre les allègements patronaux, permet une comparaison financière directe avec un profil en CDI classique et évalue le Retour sur Investissement (ROI) pour votre entreprise.</p>
+            </div>
+          </details>
+
+          {/* 5 — Sources officielles */}
+          <details className="faq-item">
+            <summary>📄 5. Quelles sont les sources officielles de référence ?</summary>
+            <div className="faq-body">
+              <p>Pour approfondir vos démarches, consulter les décrets ou vérifier les fiches pratiques de l'administration française, vous pouvez vous référer aux portails institutionnels :</p>
+              <ul>
+                <li><strong>La Bonne Alternance :</strong> Développé par le Ministère du Travail et de l'Emploi, le site <a href="https://labonnealternance.apprentissage.beta.gouv.fr/" target="_blank" rel="noopener noreferrer">La Bonne Alternance</a> est la plateforme idéale pour s'informer sur les dispositifs, sourcer des profils et découvrir les aides aux employeurs.</li>
+                <li><strong>Le Code du Travail :</strong> Notamment les articles L6222-27 et suivants concernant le statut et la rémunération des apprentis.</li>
+                <li><strong>Service-Public.fr :</strong> Pour obtenir des modèles de contrats (Cerfa) et des fiches synthétiques constamment mises à jour.</li>
+              </ul>
+            </div>
+          </details>
+
+          {/* 6 — Mentions légales */}
+          <details className="faq-item">
+            <summary>⚠️ 6. Mentions légales et limites de la simulation</summary>
+            <div className="faq-body">
+              <p>Les données générées par ce simulateur sont présentées à des fins purement illustratives et indicatives. Bien que mis à jour régulièrement, les résultats de cette simulation ne peuvent se substituer à un calcul comptable officiel et sont soumis aux conditions suivantes :</p>
+              <ul>
+                <li><strong>Secteur d'activité :</strong> Ce simulateur n'est valable que pour le <strong>secteur privé</strong>.</li>
+                <li><strong>Exclusions :</strong> L'outil ne prend pas en compte une éventuelle succession ou avenant faisant suite à un précédent contrat en alternance (qui pourrait revoir la grille salariale à la hausse), ni les primes exceptionnelles, les avantages en nature (tickets restaurants, mutuelle, remboursement des frais de transport domicile-travail) qui augmenteraient le coût global présenté.</li>
+                <li><strong>Changement d'âge :</strong> Un éventuel changement de tranche d'âge de l'alternant survenant en cours d'année n'est pris en compte <strong>que si la date de naissance et la date de début de contrat sont précisément renseignées</strong>.</li>
+                <li><strong>Salaire de référence :</strong> Le calcul repose exclusivement sur le minimum réglementaire légal en vigueur au jour de la simulation. Nous ne tenons pas compte des éventuelles rémunérations supérieures dictées par la convention collective de votre entreprise d'accueil (l'employeur restant libre de proposer un salaire supérieur).</li>
+                <li><strong>Validité géographique :</strong> Les règles de calcul de cette simulation sont valables pour la France métropolitaine, <strong>hors Mayotte</strong>.</li>
+              </ul>
+            </div>
+          </details>
+
+        </div>
+
+        {/* Blockquote Sully */}
+        <blockquote className="faq-blockquote" style={{ marginTop: '24px' }}>
+          <strong>L'accompagnement sur-mesure de Sully à Marseille :</strong><br/>
+          <em>Parce que chaque entreprise a ses propres spécificités sectorielles, les équipes de Sully Enseignement Supérieur et Sully Business School vous épaulent au quotidien. De la définition de votre besoin de recrutement à la sélection fine de nos talents post-bac, jusqu'aux démarches administratives de dépôt de vos contrats auprès de votre OPCO, nous sommes à vos côtés. Contactez notre service Relations Entreprises sur notre campus de Marseille pour concrétiser votre projet !</em>
+        </blockquote>
+
+      </section>
 
       <footer style={{ textAlign: 'center', padding: '20px 16px', fontSize: '12px', color: '#94a3b8', borderTop: '1px solid #e2e8f0', background: '#fff' }}>
         <strong>Sully Business School</strong> · Simulateur ROI Apprentissage 2026/2027 ·
