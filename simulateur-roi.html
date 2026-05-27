@@ -855,6 +855,7 @@ function App() {
   const [refSalId,      setRefSalId     ] = useState(DEFAULT_REF['bts']);
   const [rqth,          setRqth         ] = useState(false);
   const [extraRac,      setExtraRac     ] = useState(0);
+  const [introOpen,     setIntroOpen    ] = useState(false);
   const [useDateMode,   setUseDateMode  ] = useState(false);
   const [dob,           setDob          ] = useState('');
   const [contractStart, setContractStart] = useState('');
@@ -905,6 +906,62 @@ function App() {
           <p style={{ margin: '6px 0 0', fontSize: '14px', color: '#bfdbfe' }}>Démonstration financière de la valeur de l'alternance · Référentiel 2026/2027</p>
         </div>
       </header>
+
+      {/* ── INTRO SULLY ── */}
+      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '20px 16px 0' }}>
+        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
+          <h2 style={{ margin: '0 0 12px', fontSize: '18px', fontWeight: 800, color: '#0c1f4d', lineHeight: 1.3 }}>
+            Optimisez vos recrutements : Le Simulateur de Coût Salarial et de ROI de l'Alternance
+          </h2>
+          <p style={{ margin: 0, fontSize: '14px', color: '#374151', lineHeight: 1.6 }}>
+            Intégrer un apprenti est un levier de croissance, de transmission et de dynamisme formidable pour votre structure.
+            Pour vous accompagner dans cette démarche stratégique, <strong>Sully Business School à Marseille</strong> innove
+            et met à votre disposition cet outil exclusif d'aide à la décision.
+          </p>
+
+          {/* Contenu dépliable */}
+          <div style={{
+            overflow: 'hidden',
+            maxHeight: introOpen ? '600px' : '0',
+            transition: 'max-height .4s ease',
+          }}>
+            <div style={{ paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '14px', color: '#374151', lineHeight: 1.6 }}>
+              <p style={{ margin: 0 }}>
+                Calculer le coût réel d'un alternant post-bac peut s'avérer complexe tant les paramètres sont nombreux :
+                grilles de rémunération réglementaires (selon l'âge et l'année d'études), exonérations de charges patronales
+                et dispositifs d'aides de l'État.
+              </p>
+              <p style={{ margin: 0 }}>
+                Partenaire historique des entreprises du territoire marseillais, notre campus a conçu ce simulateur pour{' '}
+                <strong>lever toutes vos incertitudes financières</strong>. Que vous envisagiez d'accueillir l'un de nos
+                étudiants ou un profil issu d'un autre horizon, cet outil vous permet en quelques clics de :
+              </p>
+              <ul style={{ margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <li>Estimer avec précision le <strong>coût salarial réel et résiduel</strong> de votre futur apprenti (primes et aides déduites).</li>
+                <li>Établir un <strong>comparatif financier direct</strong> avec le coût d'un profil junior recruté sous contrat classique (CDI).</li>
+                <li>Évaluer le <strong>Retour sur Investissement (ROI)</strong> global de cette collaboration pour votre entreprise.</li>
+              </ul>
+              <p style={{ margin: 0 }}>
+                <strong>Anticipez vos budgets en toute sérénité :</strong> Ajustez les curseurs ci-dessous selon votre secteur
+                et le profil visé, et découvrez instantanément la compétitivité du modèle de l'alternance pour votre structure.
+              </p>
+            </div>
+          </div>
+
+          {/* Bouton bascule */}
+          <button
+            onClick={() => setIntroOpen(o => !o)}
+            style={{
+              marginTop: '10px', background: 'none', border: 'none', padding: '0',
+              cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+              color: '#1e3799', display: 'flex', alignItems: 'center', gap: '4px',
+            }}
+          >
+            <span style={{ display: 'inline-block', transform: introOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform .3s', fontSize: '11px' }}>▶</span>
+            {introOpen ? 'Réduire' : 'En savoir plus...'}
+          </button>
+        </div>
+      </div>
 
       <main style={{ maxWidth: '960px', margin: '0 auto', padding: '24px 16px 40px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '20px', alignItems: 'start' }}>
