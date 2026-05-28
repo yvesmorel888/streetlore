@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
-    body { margin: 0; background: #f1f5f9; }
+    body { margin: 0; background: #f1f5f9; padding-bottom: 64px; }
 
     .header-gradient { background: linear-gradient(135deg, #0c1f4d 0%, #1e3799 60%, #0c2461 100%); }
     .impact-gradient  { background: linear-gradient(135deg, #0c2461 0%, #1e3799 50%, #0c2461 100%); }
@@ -934,6 +934,13 @@ function App() {
         </div>
       </header>
 
+      {/* ── BANDEAU BÊTA ── */}
+      <div className="no-print" style={{ background: '#fef3c7', borderBottom: '1px solid #fde68a', padding: '10px 20px', textAlign: 'center', fontSize: '13px', color: '#78350f', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <span style={{ background: '#f59e0b', color: '#fff', fontWeight: 800, fontSize: '11px', padding: '2px 8px', borderRadius: '20px', letterSpacing: '.06em', textTransform: 'uppercase' }}>Version bêta</span>
+        <span>Cet outil est en cours d'amélioration continue. Vos retours sont précieux !</span>
+        <a href="mailto:contact@esully.fr" style={{ color: '#92400e', fontWeight: 700, textDecoration: 'underline', whiteSpace: 'nowrap' }}>contact@esully.fr</a>
+      </div>
+
       {/* ── INTRO SULLY ── */}
       <div className="no-print" style={{ maxWidth: '960px', margin: '0 auto', padding: '20px 16px 0' }}>
         <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
@@ -1238,6 +1245,28 @@ function App() {
           <a href="mailto:contact@esully.fr" style={{ color: '#1e3799' }}>Signaler une anomalie ou poser une question</a>
         </div>
       </footer>
+
+      {/* ── CTA RECRUTEMENT FIXE ── */}
+      <div className="no-print" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 999, background: 'linear-gradient(135deg, #0c1f4d 0%, #1e3799 100%)', boxShadow: '0 -4px 20px rgba(0,0,0,.25)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
+        <span style={{ color: '#bfdbfe', fontSize: '14px', fontWeight: 500 }}>
+          🎓 <strong style={{ color: '#fff' }}>Vous souhaitez recruter un alternant ?</strong> Déposez votre offre gratuitement.
+        </span>
+        <a
+          href="https://www.ltpsully.com/espace-entreprises/recruter/#form_entreprise"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            background: '#f59e0b', color: '#fff', fontWeight: 800, fontSize: '13px',
+            padding: '9px 20px', borderRadius: '30px', textDecoration: 'none',
+            whiteSpace: 'nowrap', boxShadow: '0 3px 12px rgba(245,158,11,.5)',
+            transition: 'transform .15s, box-shadow .15s', display: 'inline-block',
+          }}
+          onMouseOver={e => { e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 5px 18px rgba(245,158,11,.65)'; }}
+          onMouseOut={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 3px 12px rgba(245,158,11,.5)'; }}
+        >
+          Recruter via Sully →
+        </a>
+      </div>
 
     </div>
   );
