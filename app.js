@@ -181,6 +181,15 @@ async function overpass(ql){
   return r.json();
 }
 
+async function fetchComcom(lat,lon){
+  try{
+    const ql=`[out:json][timeout:8];is_in(${lat},${lon})->.a;rel(pivot.a)["boundary"="administrative"];out tags;`;
+    const d=await overpass(ql);
+    const epci=(d.elements||[]).find(e=>/communaut|métropole|agglomération/i.test(e.tags?.name||''));
+    return epci?.tags?.name||null;
+  }catch{return null;}
+}
+
 async function fetchNearbyStreets(lat,lon){
   try{
     const ql=`[out:json][timeout:8];way["highway"]["name"](around:80,${lat},${lon});out tags;`;
@@ -531,17 +540,15 @@ function renderHome(){
   const addr=state.nominatim.address;
   const city=state.manualCity||(addr.city||addr.town||addr.village||addr.municipality||'');
   state.cityName=city;
-  // Communauté de communes : addr.municipality quand différente de la commune
-  const comcom=(!state.manualCity&&addr.municipality&&addr.municipality!==city)?addr.municipality:'';
   const dept=addr.county||'';
   const region=addr.state||'';
-  state.comcomName=comcom;state.deptName=dept;state.regionName=region;
+  state.comcomName='';state.deptName=dept;state.regionName=region;
   document.getElementById('home-type').textContent=state.streetType;
   document.getElementById('home-name').textContent=state.streetSimple||'—';
   document.getElementById('home-city').textContent=city?`📍 ${[addr.city_district,city].filter(Boolean).join(' · ')}`:'';
   document.getElementById('sub-street').textContent=state.streetSimple;
   document.getElementById('sub-city').textContent=city;
-  document.getElementById('sub-comcom').textContent=comcom;
+  document.getElementById('sub-comcom').textContent='';
   document.getElementById('sub-dept').textContent=dept;
   document.getElementById('sub-region').textContent=region;
   document.getElementById('manual-notice').classList.add('hidden');
@@ -564,6 +571,11 @@ function renderHome(){
   }
 
   const{lat,lon}=state.coords;
+
+  // Communauté de communes via Overpass is_in (plus fiable que Nominatim municipality)
+  fetchComcom(lat,lon).then(cc=>{
+    if(cc){state.comcomName=cc;document.getElementById('sub-comcom').textContent=cc;}
+  }).catch(()=>{});
 
   fetchAllPlaques(lat,lon).then(pl=>{
     state.plaques=pl;
