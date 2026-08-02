@@ -418,7 +418,10 @@ async function findBestWikiArticle(simple,full,city,lat,lon){
     const r=await withTimeout(fetch(u),6000);
     if(!r.ok) return null;
     const results=(await r.json()).query?.search??[];
+    const simpleLow=simple.toLowerCase();
     for(const res of results){
+      // Pertinence : le titre de l'article doit contenir le terme recherché
+      if(!res.title.toLowerCase().includes(simpleLow)) continue;
       const s=await wikiSummary(res.title);
       if(s&&s.type!=='disambiguation') return s;
     }
