@@ -408,7 +408,12 @@ async function findBestWikiArticle(simple,full,city,lat,lon){
   // 2. Page dédiée à la rue
   if(city){const w=await wikiSummary(`${full} (${city})`);if(w?.extract&&w.type!=='disambiguation') return w;}
   const w2=await wikiSummary(full);
-  if(w2?.extract&&w2.type!=='disambiguation') return w2;
+  if(w2?.extract&&w2.type!=='disambiguation'){
+    // Rejeter si Wikipedia renvoie une page qualifiée pour une autre ville — ex. "Rue X (Liège)" alors qu'on est à Ancenis
+    const qualifier=(w2.title?.match(/\(([^)]+)\)$/)?.[1]||'').toLowerCase();
+    const cityLow=(city||'').toLowerCase();
+    if(!qualifier||!cityLow||qualifier.includes(cityLow)||cityLow.includes(qualifier)) return w2;
+  }
   // 3. Recherche par nom simplifié
   try{
     const u=new URL(`https://${LOCALE.wikipedia}.wikipedia.org/w/api.php`);
