@@ -188,6 +188,7 @@ h1 {
   font-family: var(--font); font-size: 1rem; font-weight: 600; outline: none;
 }
 .edit-input::placeholder { color: var(--dim); font-weight: 400; }
+.edit-label { font-size: .75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .edit-btns { display: flex; gap: .5rem; }
 .btn-edit-ok {
   flex: 1; padding: .7rem; background: var(--accent); color: #0f172a;

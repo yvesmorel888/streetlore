@@ -77,6 +77,7 @@ const state = {
   resultType:    '',
   wikiCache:     {},
   manualEdit:    false,
+  manualCity:    '',
   leafletLoaded: false,
   mapInstance:   null,
   mhMapInstance: null,
@@ -515,7 +516,7 @@ function selectStreet(fullName){
 
 function renderHome(){
   const addr=state.nominatim.address;
-  const city=addr.city||addr.town||addr.village||addr.municipality||'';
+  const city=state.manualCity||(addr.city||addr.town||addr.village||addr.municipality||'');
   state.cityName=city;
   document.getElementById('home-type').textContent=state.streetType;
   document.getElementById('home-name').textContent=state.streetSimple;
@@ -796,7 +797,7 @@ function splashText(t){document.getElementById('splash-text').textContent=t;}
 function splashError(msg){document.getElementById('splash-spinner').style.display='none';splashText(msg);document.getElementById('btn-retry').classList.remove('hidden');}
 
 async function locateAndLoad(){
-  state.wikiCache={};state.plaques=[];state.manualEdit=false;
+  state.wikiCache={};state.plaques=[];state.manualEdit=false;state.manualCity='';
   showScreen('screen-splash');
   document.getElementById('btn-retry').classList.add('hidden');
   document.getElementById('splash-spinner').style.display='';
@@ -891,17 +892,22 @@ document.getElementById('btn-edit').addEventListener('click',()=>{
 });
 document.getElementById('btn-edit-cancel').addEventListener('click',()=>document.getElementById('edit-form').classList.remove('open'));
 document.getElementById('edit-input').addEventListener('keydown',e=>{if(e.key==='Enter')applyEdit();if(e.key==='Escape')document.getElementById('edit-form').classList.remove('open');});
+document.getElementById('edit-city-input').addEventListener('keydown',e=>{if(e.key==='Enter')applyEdit();if(e.key==='Escape')document.getElementById('edit-form').classList.remove('open');});
 document.getElementById('btn-edit-ok').addEventListener('click',applyEdit);
 
 function applyEdit(){
   const raw=document.getElementById('edit-input').value.trim();
   if(!raw) return;
+  const cityRaw=document.getElementById('edit-city-input').value.trim();
   const{simplified,type}=parseStreet(raw);
   state.streetSimple=simplified;state.streetType=type;state.streetFull=raw;
-  state.manualEdit=true;state.wikiCache={};
+  state.manualEdit=true;state.manualCity=cityRaw;state.wikiCache={};
+  if(cityRaw) state.cityName=cityRaw;
   document.getElementById('home-type').textContent=type;
   document.getElementById('home-name').textContent=simplified;
+  document.getElementById('home-city').textContent=cityRaw?`📍 ${cityRaw}`:(state.nominatim?document.getElementById('home-city').textContent:'');
   document.getElementById('sub-street').textContent=simplified;
+  document.getElementById('sub-city').textContent=cityRaw||state.cityName;
   document.getElementById('edit-form').classList.remove('open');
   document.getElementById('manual-notice').classList.remove('hidden');
   document.getElementById('plaques-badge').classList.add('hidden');
