@@ -72,6 +72,9 @@ const state = {
   streetType:    '',
   streetSimple:  '',
   cityName:      '',
+  comcomName:    '',
+  deptName:      '',
+  regionName:    '',
   plaques:       [],
   monuments:     [],
   resultType:    '',
@@ -528,11 +531,19 @@ function renderHome(){
   const addr=state.nominatim.address;
   const city=state.manualCity||(addr.city||addr.town||addr.village||addr.municipality||'');
   state.cityName=city;
+  // Communauté de communes : addr.municipality quand différente de la commune
+  const comcom=(!state.manualCity&&addr.municipality&&addr.municipality!==city)?addr.municipality:'';
+  const dept=addr.county||'';
+  const region=addr.state||'';
+  state.comcomName=comcom;state.deptName=dept;state.regionName=region;
   document.getElementById('home-type').textContent=state.streetType;
   document.getElementById('home-name').textContent=state.streetSimple||'—';
   document.getElementById('home-city').textContent=city?`📍 ${[addr.city_district,city].filter(Boolean).join(' · ')}`:'';
   document.getElementById('sub-street').textContent=state.streetSimple;
   document.getElementById('sub-city').textContent=city;
+  document.getElementById('sub-comcom').textContent=comcom;
+  document.getElementById('sub-dept').textContent=dept;
+  document.getElementById('sub-region').textContent=region;
   document.getElementById('manual-notice').classList.add('hidden');
   document.getElementById('plaques-badge').classList.add('hidden');
   document.getElementById('plaques-loading').classList.remove('hidden');
@@ -594,12 +605,14 @@ async function renderResults(type,sharedName,sharedCity){
   resetSkeleton();
 
   const isStreet=(type==='street');
-  const name=sharedName||(isStreet?state.streetSimple:state.cityName);
+  const nameMap={street:state.streetSimple,city:state.cityName,comcom:state.comcomName,dept:state.deptName,region:state.regionName};
+  const eyebrowMap={street:state.streetType,city:'Ville',comcom:'Communauté de communes',dept:'Département',region:'Région'};
+  const name=sharedName||nameMap[type]||'';
   const city=sharedCity||state.cityName;
   const addr=state.nominatim?.address||{};
 
-  document.getElementById('res-eyebrow').textContent=isStreet?state.streetType:'Ville';
-  document.getElementById('res-name').textContent=name;
+  document.getElementById('res-eyebrow').textContent=eyebrowMap[type]||'';
+  document.getElementById('res-name').textContent=name||eyebrowMap[type]||'';
   document.getElementById('res-city').textContent=[addr.city_district,city].filter(Boolean).join(', ');
   document.getElementById('nb-card').style.display=isStreet?'':'none';
 
@@ -634,7 +647,7 @@ async function renderResults(type,sharedName,sharedCity){
   if(!state.wikiCache[cacheKey]){
     state.wikiCache[cacheKey]=isStreet
       ?fetchStreetInfo(name,state.streetFull||name,city,state.coords?.lat,state.coords?.lon)
-      :fetchCityInfo(city);
+      :fetchCityInfo(name);
   }
 
   let res;
@@ -647,10 +660,11 @@ function applyWikiSection(res,name,city){
   const wikiEl=document.getElementById('wiki-content');
   const linksEl=document.getElementById('links-content');
 
-  const streetQuery=state.streetFull?`${state.streetFull} ${city}`:`${name} ${city}`;
-  const perplexityUrl=`https://www.perplexity.ai/search?q=${encodeURIComponent(UI.search.perplexityPrefix+' '+streetQuery)}`;
-  const mQ=encodeURIComponent(`${state.streetFull||name} ${city}`);
-  const gQ=encodeURIComponent(`${name} ${city} ${UI.search.googleSuffix}`);
+  const isStreetResult=(state.resultType==='street');
+  const searchBase=isStreetResult?(state.streetFull?`${state.streetFull} ${city}`:name):name;
+  const perplexityUrl=`https://www.perplexity.ai/search?q=${encodeURIComponent(UI.search.perplexityPrefix+' '+searchBase)}`;
+  const mQ=encodeURIComponent(isStreetResult?`${state.streetFull||name} ${city}`:name);
+  const gQ=encodeURIComponent(`${name} ${UI.search.googleSuffix}`);
   const wikiDomain=`${LOCALE.wikipedia}.wikipedia.org`;
 
   // Liens — toujours affichés
@@ -911,6 +925,9 @@ document.getElementById('btn-street').addEventListener('click',()=>{
   renderResults('street');
 });
 document.getElementById('btn-city').addEventListener('click',()=>renderResults('city'));
+document.getElementById('btn-comcom').addEventListener('click',()=>renderResults('comcom'));
+document.getElementById('btn-dept').addEventListener('click',()=>renderResults('dept'));
+document.getElementById('btn-region').addEventListener('click',()=>renderResults('region'));
 document.getElementById('btn-plaques').addEventListener('click',renderPlaques);
 document.getElementById('btn-monuments').addEventListener('click',renderMonuments);
 document.getElementById('btn-about').addEventListener('click',()=>showScreen('screen-about'));

@@ -54,7 +54,7 @@
     </div>
     <div class="home-scroll">
 
-      <p class="version-label">v2.9 · 18/05/2026</p>
+      <p class="version-label">v3.0 · 18/05/2026</p>
 
       <div class="location-card">
         <p class="eyebrow">Vous êtes sur</p>
@@ -85,7 +85,7 @@
       <button id="btn-street" class="btn-action">
         <span class="ba-icon">📖</span>
         <span class="ba-body">
-          <span class="ba-title">Histoire de la rue</span>
+          <span class="ba-title">Infos sur la rue</span>
           <span id="sub-street" class="ba-sub"></span>
         </span>
         <span class="ba-arrow">›</span>
@@ -94,8 +94,35 @@
       <button id="btn-city" class="btn-action">
         <span class="ba-icon">🏙️</span>
         <span class="ba-body">
-          <span class="ba-title">Histoire de la ville</span>
+          <span class="ba-title">Infos sur la ville</span>
           <span id="sub-city" class="ba-sub"></span>
+        </span>
+        <span class="ba-arrow">›</span>
+      </button>
+
+      <button id="btn-comcom" class="btn-action">
+        <span class="ba-icon">🏘️</span>
+        <span class="ba-body">
+          <span class="ba-title">Infos sur la communauté de communes</span>
+          <span id="sub-comcom" class="ba-sub"></span>
+        </span>
+        <span class="ba-arrow">›</span>
+      </button>
+
+      <button id="btn-dept" class="btn-action">
+        <span class="ba-icon">🗺️</span>
+        <span class="ba-body">
+          <span class="ba-title">Infos sur le département</span>
+          <span id="sub-dept" class="ba-sub"></span>
+        </span>
+        <span class="ba-arrow">›</span>
+      </button>
+
+      <button id="btn-region" class="btn-action">
+        <span class="ba-icon">🌍</span>
+        <span class="ba-body">
+          <span class="ba-title">Infos sur la région</span>
+          <span id="sub-region" class="ba-sub"></span>
         </span>
         <span class="ba-arrow">›</span>
       </button>
@@ -238,9 +265,33 @@
 
           <div class="cl-entry">
             <div class="cl-head">
-              <span class="cl-ver">2.8</span>
+              <span class="cl-ver">3.0</span>
               <span class="cl-date">18 / 05 / 2026</span>
               <span class="cl-current">Actuelle</span>
+            </div>
+            <ul class="cl-list">
+              <li>5 boutons d'infos : rue, ville, communauté de communes, département, région</li>
+              <li>Noms des entités affichés en sous-titre de chaque bouton</li>
+              <li>Pages Wikipedia dédiées pour chaque entité administrative</li>
+            </ul>
+          </div>
+
+          <div class="cl-entry">
+            <div class="cl-head">
+              <span class="cl-ver">2.9</span>
+              <span class="cl-date">18 / 05 / 2026</span>
+            </div>
+            <ul class="cl-list">
+              <li>Corrections recherche Wikipedia : filtre pertinence, rejet autre ville, accents</li>
+              <li>Mode test : champ Ville + fallback automatique si aucune rue détectée</li>
+              <li>Cartouche Quartier mis à jour avec la ville manuelle en mode test</li>
+            </ul>
+          </div>
+
+          <div class="cl-entry">
+            <div class="cl-head">
+              <span class="cl-ver">2.8</span>
+              <span class="cl-date">18 / 05 / 2026</span>
             </div>
             <ul class="cl-list">
               <li>Refactoring multilocale — constantes LOCALE et UI centralisées</li>
