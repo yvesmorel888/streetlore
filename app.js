@@ -81,6 +81,7 @@ const state = {
   wikiCache:     {},
   manualEdit:    false,
   manualCity:    '',
+  manualCoords:  null,
   leafletLoaded: false,
   mapInstance:   null,
   mhMapInstance: null,
@@ -548,6 +549,13 @@ function selectStreet(fullName){
   renderHome();
 }
 
+function updateOsmLink(){
+  const c=state.manualEdit&&state.manualCoords?state.manualCoords:state.coords;
+  if(!c) return;
+  const link=document.getElementById('osm-link');
+  if(link) link.href=`https://www.openstreetmap.org/?mlat=${c.lat}&mlon=${c.lon}#map=17/${c.lat}/${c.lon}`;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // RENDU — ACCUEIL
 // ═══════════════════════════════════════════════════════════════════════════
@@ -586,9 +594,11 @@ function renderHome(){
     },250);
   }
 
+  updateOsmLink();
+
   const{lat,lon}=state.coords;
 
-  // Communauté de communes via Overpass is_in (plus fiable que Nominatim municipality)
+  // Communauté de communes via geo.api.gouv.fr
   fetchComcom(lat,lon).then(cc=>{
     if(cc){state.comcomName=cc;document.getElementById('sub-comcom').textContent=cc;}
   }).catch(()=>{});
@@ -623,7 +633,6 @@ function renderHome(){
 function resetSkeleton(){
   document.getElementById('wiki-content').innerHTML='<div class="sk"></div><div class="sk"></div><div class="sk short"></div>';
   document.getElementById('links-content').innerHTML='<div class="sk"></div><div class="sk short"></div>';
-  document.getElementById('nb-content').innerHTML='<div class="sk short"></div>';
   document.getElementById('source-badge').className='source-badge hidden';
   document.getElementById('local-card').classList.add('hidden');
 }
@@ -642,35 +651,9 @@ async function renderResults(type,sharedName,sharedCity){
   document.getElementById('res-eyebrow').textContent=eyebrowMap[type]||'';
   document.getElementById('res-name').textContent=name||eyebrowMap[type]||'';
   document.getElementById('res-city').textContent=[addr.city_district,city].filter(Boolean).join(', ');
-  document.getElementById('nb-card').style.display=isStreet?'':'none';
 
   showScreen('screen-results');
 
-  // Quartier (rue seulement)
-  if(isStreet){
-    const CITY_KEYS=new Set(['city','town','village','municipality']);
-    const items=[],seen=new Set();
-    for(const[k,label]of[
-      ['neighbourhood','Quartier'],['suburb','Quartier'],['city_district','Arrondissement'],
-      ['city','Ville'],['town','Ville'],['village','Village'],
-      ['municipality','Commune'],['county','Département'],['postcode','Code postal'],
-    ]){
-      // En mode test, substituer ville et département manuels
-      const val=(CITY_KEYS.has(k)&&state.manualCity)?state.manualCity:
-                (k==='county'&&state.manualEdit&&state.deptName)?state.deptName:
-                addr[k];
-      if(val&&!seen.has(label)){seen.add(label);items.push({label,value:val});}
-      if(items.length>=4) break;
-    }
-    const nbEl=document.getElementById('nb-content');
-    if(items.length){
-      const grid=items.map(({label,value})=>`<div class="nb-item"><p class="nb-label">${label}</p><p class="nb-value">${value}</p></div>`).join('');
-      const{lat,lon}=state.coords||{lat:0,lon:0};
-      nbEl.innerHTML=`<div class="nb-grid">${grid}</div><a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}" target="_blank" rel="noopener" class="osm-link">${UI.links.osm}</a>`;
-    }else{
-      nbEl.innerHTML=`<p style="color:var(--muted);font-size:.9rem">${UI.empty.noData}</p>`;
-    }
-  }
 
   // Fetch IA + Wikipedia en parallèle
   const cacheKey=`${type}:${name}`;
@@ -871,7 +854,7 @@ function splashText(t){document.getElementById('splash-text').textContent=t;}
 function splashError(msg){document.getElementById('splash-spinner').style.display='none';splashText(msg);document.getElementById('btn-retry').classList.remove('hidden');}
 
 async function locateAndLoad(){
-  state.wikiCache={};state.plaques=[];state.manualEdit=false;state.manualCity='';
+  state.wikiCache={};state.plaques=[];state.manualEdit=false;state.manualCity='';state.manualCoords=null;
   showScreen('screen-splash');
   document.getElementById('btn-retry').classList.add('hidden');
   document.getElementById('splash-spinner').style.display='';
@@ -1042,6 +1025,8 @@ function _applyEdit(raw,simplified,type,cityName,geoResult){
   state.comcomName='';document.getElementById('sub-comcom').textContent='';
   const lat=parseFloat(geoResult.lat);const lon=parseFloat(geoResult.lon);
   if(!isNaN(lat)&&!isNaN(lon)){
+    state.manualCoords={lat,lon};
+    updateOsmLink();
     fetchComcom(lat,lon).then(cc=>{
       if(cc){state.comcomName=cc;document.getElementById('sub-comcom').textContent=cc;}
     }).catch(()=>{});
