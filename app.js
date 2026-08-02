@@ -797,7 +797,7 @@ async function renderPlaques(){
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function renderMonuments(){
-  const{lat,lon}=state.coords;
+  const{lat,lon}=state.manualCoords||state.coords;
   document.getElementById('mh-subtitle').textContent=
     `${state.monuments.length} trouvé${state.monuments.length>1?'s':''} · 500 m · ${state.cityName}`;
   showScreen('screen-monuments');
@@ -842,6 +842,7 @@ async function renderMonuments(){
         <span class="mh-chev">›</span>
       </div>
       <div class="mh-detail">
+        <div class="mh-wiki"></div>
         ${m.merimeeUrl?`<a href="${m.merimeeUrl}" target="_blank" rel="noopener" class="mh-link">📋 ${UI.links.merimee}</a>`:''}
         <a href="https://www.google.com/search?q=${encodeURIComponent(m.name+' '+state.cityName+' '+UI.search.googleSuffix)}" target="_blank" rel="noopener" class="mh-link">🔍 ${UI.links.google}</a>
       </div>
@@ -857,6 +858,19 @@ async function renderMonuments(){
         item.classList.add('open');
         const m=state.monuments[+item.dataset.i];
         if(state.mhMapInstance) state.mhMapInstance.flyTo([m.lat,m.lon],17,{duration:.8});
+        // Wikipedia lazy-load
+        const wikiEl=item.querySelector('.mh-wiki');
+        if(wikiEl&&!wikiEl.dataset.loaded){
+          wikiEl.dataset.loaded='1';
+          wikiEl.innerHTML='<div class="sk short"></div>';
+          fetchCityInfo(m.name).then(({wiki})=>{
+            if(!wiki?.extract){wikiEl.innerHTML='';return;}
+            const img=wiki.thumbnail?.source?`<img class="mh-wiki-img" src="${wiki.thumbnail.source}" alt="" loading="lazy">`:'';
+            const text=wiki.extract.length>280?wiki.extract.slice(0,280).replace(/\s+\S*$/,'')+'…':wiki.extract;
+            const link=wiki.content_urls?.mobile?.page||wiki.content_urls?.desktop?.page||'';
+            wikiEl.innerHTML=img+`<p class="mh-wiki-text">${text}</p>`+(link?`<a href="${link}" target="_blank" rel="noopener" class="mh-link">📖 Wikipedia</a>`:'');
+          }).catch(()=>{wikiEl.innerHTML='';});
+        }
       }
     });
   });
@@ -1030,9 +1044,9 @@ function _applyEdit(raw,simplified,type,cityName,geoResult){
   document.getElementById('home-city').textContent=cityName?`📍 ${cityName}`:(state.nominatim?document.getElementById('home-city').textContent:'');
   document.getElementById('sub-city').textContent=cityName||state.cityName;
   document.getElementById('edit-form').classList.remove('open');
-  document.getElementById('manual-notice').classList.remove('hidden');
-  document.getElementById('plaques-badge').classList.add('hidden');
-  document.getElementById('plaques-loading').classList.add('hidden');
+  const noticeEl=document.getElementById('manual-notice');
+  noticeEl.classList.remove('hidden');
+  noticeEl.textContent=geoResult?'✏️ Mode manuel':'✏️ Mode test';
   toast(raw?UI.share.editOk(simplified):cityName?`✏️ Ville : ${cityName}`:'✏️ Mode test activé');
   if(!geoResult) return;
   const addr=geoResult.address||{};
@@ -1048,6 +1062,30 @@ function _applyEdit(raw,simplified,type,cityName,geoResult){
     fetchComcom(lat,lon).then(cc=>{
       if(cc){state.comcomName=cc;document.getElementById('sub-comcom').textContent=cc;}
     }).catch(()=>{});
+    // Plaques et monuments pour la ville géocodée
+    state.plaques=[];state.monuments=[];
+    document.getElementById('plaques-badge').classList.add('hidden');
+    document.getElementById('plaques-loading').classList.remove('hidden');
+    fetchAllPlaques(lat,lon).then(pl=>{
+      state.plaques=pl;
+      document.getElementById('plaques-loading').classList.add('hidden');
+      if(pl.length){
+        document.getElementById('pb-label').textContent=`${pl.length} plaque${pl.length>1?'s':''} commémorative${pl.length>1?'s':''}`;
+        document.getElementById('plaques-badge').classList.remove('hidden');
+      }
+    }).catch(()=>document.getElementById('plaques-loading').classList.add('hidden'));
+    if(LOCALE.features.monuments){
+      document.getElementById('mh-badge').classList.add('hidden');
+      document.getElementById('mh-loading').classList.remove('hidden');
+      fetchMonumentsHistoriques(lat,lon).then(mh=>{
+        state.monuments=mh;
+        document.getElementById('mh-loading').classList.add('hidden');
+        if(mh.length){
+          document.getElementById('mh-label').textContent=`${mh.length} monument${mh.length>1?'s':''} historique${mh.length>1?'s':''}`;
+          document.getElementById('mh-badge').classList.remove('hidden');
+        }
+      }).catch(()=>document.getElementById('mh-loading').classList.add('hidden'));
+    }
   }
 }
 

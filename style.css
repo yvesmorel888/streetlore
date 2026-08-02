@@ -371,6 +371,9 @@ h1 {
 .mh-item.open .mh-detail { display: flex; }
 .mh-link { display: inline-flex; align-items: center; gap: .5rem; font-size: .85rem; color: var(--accent); text-decoration: none; font-weight: 500; }
 .mh-link:active { opacity: .7; }
+.mh-wiki { }
+.mh-wiki-img { width: 100%; max-height: 180px; object-fit: cover; border-radius: var(--rsm); margin-bottom: .5rem; }
+.mh-wiki-text { font-size: .875rem; color: var(--text); line-height: 1.55; opacity: .9; }
 
 /* ── À PROPOS ────────────────────────────────────────────────────────────── */
 /* about-scroll = padding wrapper, PAS un scroll container */
