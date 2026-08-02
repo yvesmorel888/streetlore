@@ -519,7 +519,7 @@ function renderHome(){
   const city=state.manualCity||(addr.city||addr.town||addr.village||addr.municipality||'');
   state.cityName=city;
   document.getElementById('home-type').textContent=state.streetType;
-  document.getElementById('home-name').textContent=state.streetSimple;
+  document.getElementById('home-name').textContent=state.streetSimple||'—';
   document.getElementById('home-city').textContent=city?`📍 ${[addr.city_district,city].filter(Boolean).join(' · ')}`:'';
   document.getElementById('sub-street').textContent=state.streetSimple;
   document.getElementById('sub-city').textContent=city;
@@ -532,6 +532,15 @@ function renderHome(){
   if(state.nearbyStreets.length>1) btnChange.classList.remove('hidden');
   else btnChange.classList.add('hidden');
   showScreen('screen-home');
+
+  // Pas de rue identifiée : ouvrir le formulaire d'édition automatiquement
+  if(!state.streetSimple){
+    document.getElementById('manual-notice').classList.remove('hidden');
+    setTimeout(()=>{
+      document.getElementById('edit-form').classList.add('open');
+      document.getElementById('edit-input').focus();
+    },250);
+  }
 
   const{lat,lon}=state.coords;
 
@@ -814,7 +823,13 @@ async function locateAndLoad(){
         const data=await reverseGeocode(lat,lon);
         state.nominatim=data;
         const road=data.address?.road||data.address?.pedestrian||data.address?.footway||data.address?.path||'';
-        if(!road){splashError(UI.splash.noRoad);return;}
+        if(!road){
+          // Ville connue mais aucune rue — passer en mode test directement
+          state.streetFull='';state.streetSimple='';state.streetType='';
+          state.manualEdit=true;
+          renderHome();
+          return;
+        }
 
         splashText(UI.splash.nearby);
         const nearby=await fetchNearbyStreets(lat,lon);
@@ -874,7 +889,14 @@ document.getElementById('btn-back-select').addEventListener('click',()=>{
   if(state.nominatim) showScreen('screen-home'); else locateAndLoad();
 });
 document.getElementById('btn-change-street').addEventListener('click',()=>showStreetSelection(state.nearbyStreets));
-document.getElementById('btn-street').addEventListener('click',()=>renderResults('street'));
+document.getElementById('btn-street').addEventListener('click',()=>{
+  if(!state.streetSimple){
+    document.getElementById('edit-form').classList.add('open');
+    document.getElementById('edit-input').focus();
+    return;
+  }
+  renderResults('street');
+});
 document.getElementById('btn-city').addEventListener('click',()=>renderResults('city'));
 document.getElementById('btn-plaques').addEventListener('click',renderPlaques);
 document.getElementById('btn-monuments').addEventListener('click',renderMonuments);
