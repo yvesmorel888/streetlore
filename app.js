@@ -408,6 +408,15 @@ async function findBestWikiArticle(simple,full,city,lat,lon){
   }
   // 2. Page dédiée à la rue
   if(city){const w=await wikiSummary(`${full} (${city})`);if(w?.extract&&w.type!=='disambiguation') return w;}
+  // 2.5 Nom simplifié en direct — "Georges Clémenceau" → page de la personne sans passer par la recherche
+  if(simple!==full){
+    const w25=await wikiSummary(simple);
+    if(w25?.extract&&w25.type!=='disambiguation'){
+      const q25=(w25.title?.match(/\(([^)]+)\)$/)?.[1]||'').toLowerCase();
+      const cl=(city||'').toLowerCase();
+      if(!q25||!cl||q25.includes(cl)||cl.includes(q25)) return w25;
+    }
+  }
   const w2=await wikiSummary(full);
   if(w2?.extract&&w2.type!=='disambiguation'){
     // Rejeter si Wikipedia renvoie une page qualifiée pour une autre ville — ex. "Rue X (Liège)" alors qu'on est à Ancenis
@@ -420,7 +429,7 @@ async function findBestWikiArticle(simple,full,city,lat,lon){
     const u=new URL(`https://${LOCALE.wikipedia}.wikipedia.org/w/api.php`);
     u.searchParams.set('action','query');u.searchParams.set('list','search');
     u.searchParams.set('srsearch',simple);u.searchParams.set('format','json');
-    u.searchParams.set('origin','*');u.searchParams.set('srlimit','3');
+    u.searchParams.set('origin','*');u.searchParams.set('srlimit','5');
     const r=await withTimeout(fetch(u),6000);
     if(!r.ok) return null;
     const results=(await r.json()).query?.search??[];
