@@ -1,6 +1,67 @@
 'use strict';
 
 // ═══════════════════════════════════════════════════════════════════════════
+// LOCALE — Configuration régionale
+// Modifier ces valeurs pour adapter l'app à une autre langue / un autre pays.
+// Les chaînes dans index.html feront l'objet d'une passe i18n séparée.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const LOCALE = {
+  lang:         'fr',       // Code langue ISO 639-1 (Wikipedia, Nominatim, Wikidata)
+  country:      'FR',       // Code pays ISO 3166-1 alpha-2
+  wikipedia:    'fr',       // Sous-domaine Wikipedia  (fr → fr.wikipedia.org)
+  wikiSitelink: 'frwiki',   // Clé sitelink Wikidata pour l'édition Wikipedia nationale
+  features: {
+    monuments: true,         // API Mérimée — France uniquement (data.culture.gouv.fr)
+  },
+};
+
+// Chaînes UI gérées côté JS (messages dynamiques, liens construits par code)
+const UI = {
+  splash: {
+    locating:   'Localisation en cours…',
+    street:     'Identification de la rue…',
+    nearby:     'Vérification des rues à proximité…',
+    noRoad:     'Aucune rue identifiée ici. Essayez depuis une rue.',
+    errNet:     'Erreur réseau. Vérifiez votre connexion.',
+    noGeo:      'Géolocalisation non supportée.',
+    gpsRefused: 'Position refusée. Autorisez la géolocalisation dans les réglages.',
+    gpsTimeout: 'Délai GPS dépassé. Réessayez à l\'extérieur.',
+    gpsError:   'Position indisponible. Réessayez.',
+  },
+  source: {
+    wikipedia: '📖 Source : Wikipédia',
+    noWiki:    '◌ Aucune information Wikipedia trouvée',
+    oldName:   '📜 Anciennement :',
+  },
+  search: {
+    perplexityPrefix: 'Histoire de la',  // préfixe requête Perplexity
+    googleSuffix:     'histoire',         // suffixe requête Google
+  },
+  links: {
+    wikipedia:  title => `${title} — Wikipédia`,
+    searchWiki: 'Chercher sur Wikipédia',
+    maps:       'Voir sur Google Maps',
+    google:     'Rechercher sur Google',
+    perplexity: 'Approfondir avec Perplexity',
+    osm:        '🗺️ Voir sur OpenStreetMap',
+    merimee:    'Fiche Mérimée (Ministère de la Culture)',
+  },
+  share: {
+    copied:  '📋 Lien copié dans le presse-papier',
+    editOk:  name => `✏️ Nom modifié : ${name}`,
+    text:    (name, city) => `${name}${city ? ' (' + city + ')' : ''} — découvert avec StreetLore`,
+  },
+  map:   { youAreHere: 'Vous êtes ici' },
+  empty: {
+    noInfo:   name => `Aucune information disponible pour <strong>${name}</strong>.<br>Utilisez les liens ci-dessous pour en savoir plus.`,
+    noPlaque: 'Aucune plaque recensée dans un rayon de 500 m.',
+    noMH:     'Aucun monument historique recensé dans un rayon de 500 m.',
+    noData:   'Informations non disponibles.',
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ÉTAT
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -100,8 +161,8 @@ async function reverseGeocode(lat,lon){
   const u=new URL('https://nominatim.openstreetmap.org/reverse');
   u.searchParams.set('format','json');u.searchParams.set('lat',lat);
   u.searchParams.set('lon',lon);u.searchParams.set('zoom','18');
-  u.searchParams.set('addressdetails','1');u.searchParams.set('accept-language','fr');
-  const r=await withTimeout(fetch(u,{headers:{'User-Agent':'StreetLore/2.3'}}),10000);
+  u.searchParams.set('addressdetails','1');u.searchParams.set('accept-language',LOCALE.lang);
+  const r=await withTimeout(fetch(u,{headers:{'User-Agent':'StreetLore/2.7'}}),10000);
   if(!r.ok) throw new Error('Géocodage échoué');
   return r.json();
 }
@@ -131,7 +192,7 @@ async function getEtymology(street,lat,lon){
     if(!d.elements?.length) return null;
     const t=d.elements[0].tags;
     // Récupération du ou des anciens noms
-    const oldParts=[t['old_name'],t['old_name:fr']].filter(Boolean);
+    const oldParts=[t['old_name'],t[`old_name:${LOCALE.lang}`]].filter(Boolean);
     const oldName=oldParts.length?oldParts.join(' · '):null;
     return{
       wikidata:  t['name:etymology:wikidata']||null,
@@ -260,12 +321,12 @@ SELECT DISTINCT ?item ?label ?coord ?image ?article WHERE {
   { ?item wdt:P31 wd:Q840490 } UNION { ?item wdt:P31 wd:Q4989906 } UNION
   { ?item wdt:P31 wd:Q5003624 } UNION { ?item wdt:P31 wd:Q1288575 } UNION
   { ?item wdt:P31 wd:Q4330316 }
-  OPTIONAL { ?item rdfs:label ?label FILTER(LANG(?label) = "fr") }
+  OPTIONAL { ?item rdfs:label ?label FILTER(LANG(?label) = "${LOCALE.lang}") }
   OPTIONAL { ?item wdt:P18 ?image }
-  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://fr.wikipedia.org/> . }
+  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://${LOCALE.wikipedia}.wikipedia.org/> . }
 } LIMIT 40`;
     const url=`https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`;
-    const r=await withTimeout(fetch(url,{headers:{'Accept':'application/sparql-results+json','User-Agent':'StreetLore/2.3'}}),14000);
+    const r=await withTimeout(fetch(url,{headers:{'Accept':'application/sparql-results+json','User-Agent':'StreetLore/2.7'}}),14000);
     if(!r.ok) return[];
     const data=await r.json();
     return(data.results?.bindings||[]).map(b=>{
@@ -319,13 +380,13 @@ async function wikidataTitle(qid){
   try{
     const r=await withTimeout(fetch(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`),6000);
     if(!r.ok) return null;
-    return(await r.json()).entities?.[qid]?.sitelinks?.frwiki?.title||null;
+    return(await r.json()).entities?.[qid]?.sitelinks?.[LOCALE.wikiSitelink]?.title||null;
   }catch{return null;}
 }
 
 async function wikiSummary(title){
   try{
-    const r=await withTimeout(fetch(`https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`),7000);
+    const r=await withTimeout(fetch(`https://${LOCALE.wikipedia}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`),7000);
     return r.ok?r.json():null;
   }catch{return null;}
 }
@@ -341,7 +402,7 @@ async function findBestWikiArticle(simple,full,city,lat,lon){
     }
     if(etym?.wikipedia){
       const[lang,...rest]=etym.wikipedia.split(':');
-      if(lang==='fr'){const w=await wikiSummary(rest.join(':'));if(w?.extract) return w;}
+      if(lang===LOCALE.lang){const w=await wikiSummary(rest.join(':'));if(w?.extract) return w;}
     }
   }
   // 2. Page dédiée à la rue
@@ -350,7 +411,7 @@ async function findBestWikiArticle(simple,full,city,lat,lon){
   if(w2?.extract&&w2.type!=='disambiguation') return w2;
   // 3. Recherche par nom simplifié
   try{
-    const u=new URL('https://fr.wikipedia.org/w/api.php');
+    const u=new URL(`https://${LOCALE.wikipedia}.wikipedia.org/w/api.php`);
     u.searchParams.set('action','query');u.searchParams.set('list','search');
     u.searchParams.set('srsearch',simple);u.searchParams.set('format','json');
     u.searchParams.set('origin','*');u.searchParams.set('srlimit','3');
@@ -409,7 +470,7 @@ async function doShare(){
   const text=`${name}${city?' ('+city+')':''} — découvert avec StreetLore`;
   try{
     if(navigator.share){await navigator.share({title:`StreetLore · ${name}`,text,url});}
-    else{await navigator.clipboard.writeText(url);toast('📋 Lien copié dans le presse-papier');}
+    else{await navigator.clipboard.writeText(url);toast(UI.share.copied);}
   }catch{}
 }
 
@@ -474,14 +535,18 @@ function renderHome(){
     }
   }).catch(()=>document.getElementById('plaques-loading').classList.add('hidden'));
 
-  fetchMonumentsHistoriques(lat,lon).then(mh=>{
-    state.monuments=mh;
+  if(LOCALE.features.monuments){
+    fetchMonumentsHistoriques(lat,lon).then(mh=>{
+      state.monuments=mh;
+      document.getElementById('mh-loading').classList.add('hidden');
+      if(mh.length){
+        document.getElementById('mh-label').textContent=`${mh.length} monument${mh.length>1?'s':''} historique${mh.length>1?'s':''}`;
+        document.getElementById('mh-badge').classList.remove('hidden');
+      }
+    }).catch(()=>document.getElementById('mh-loading').classList.add('hidden'));
+  }else{
     document.getElementById('mh-loading').classList.add('hidden');
-    if(mh.length){
-      document.getElementById('mh-label').textContent=`${mh.length} monument${mh.length>1?'s':''} historique${mh.length>1?'s':''}`;
-      document.getElementById('mh-badge').classList.remove('hidden');
-    }
-  }).catch(()=>document.getElementById('mh-loading').classList.add('hidden'));
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -527,9 +592,9 @@ async function renderResults(type,sharedName,sharedCity){
     if(items.length){
       const grid=items.map(({label,value})=>`<div class="nb-item"><p class="nb-label">${label}</p><p class="nb-value">${value}</p></div>`).join('');
       const{lat,lon}=state.coords||{lat:0,lon:0};
-      nbEl.innerHTML=`<div class="nb-grid">${grid}</div><a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}" target="_blank" rel="noopener" class="osm-link">🗺️ Voir sur OpenStreetMap</a>`;
+      nbEl.innerHTML=`<div class="nb-grid">${grid}</div><a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=17/${lat}/${lon}" target="_blank" rel="noopener" class="osm-link">${UI.links.osm}</a>`;
     }else{
-      nbEl.innerHTML='<p style="color:var(--muted);font-size:.9rem">Informations non disponibles.</p>';
+      nbEl.innerHTML=`<p style="color:var(--muted);font-size:.9rem">${UI.empty.noData}</p>`;
     }
   }
 
@@ -552,35 +617,36 @@ function applyWikiSection(res,name,city){
   const linksEl=document.getElementById('links-content');
 
   const streetQuery=state.streetFull?`${state.streetFull} ${city}`:`${name} ${city}`;
-  const perplexityUrl=`https://www.perplexity.ai/search?q=${encodeURIComponent('Histoire de la '+streetQuery)}`;
+  const perplexityUrl=`https://www.perplexity.ai/search?q=${encodeURIComponent(UI.search.perplexityPrefix+' '+streetQuery)}`;
   const mQ=encodeURIComponent(`${state.streetFull||name} ${city}`);
-  const gQ=encodeURIComponent(`${name} ${city} histoire`);
+  const gQ=encodeURIComponent(`${name} ${city} ${UI.search.googleSuffix}`);
+  const wikiDomain=`${LOCALE.wikipedia}.wikipedia.org`;
 
   // Liens — toujours affichés
   const wikiUrl=res.wiki?.content_urls?.mobile?.page||res.wiki?.content_urls?.desktop?.page||'';
   linksEl.innerHTML=
     (wikiUrl
-      ?linkRow(wikiUrl,`${res.wiki.title} — Wikipédia`,'fr.wikipedia.org','📖')
-      :linkRow(`https://fr.wikipedia.org/w/index.php?search=${encodeURIComponent(name)}`,'Chercher sur Wikipédia','fr.wikipedia.org','📖'))+
-    linkRow(`https://www.google.com/maps/search/${mQ}`,'Voir sur Google Maps','maps.google.com','📍')+
-    linkRow(`https://www.google.com/search?q=${gQ}`,'Rechercher sur Google','google.com','🔍')+
-    linkRow(perplexityUrl,'Approfondir avec Perplexity','perplexity.ai','🤖');
+      ?linkRow(wikiUrl,UI.links.wikipedia(res.wiki.title),wikiDomain,'📖')
+      :linkRow(`https://${wikiDomain}/w/index.php?search=${encodeURIComponent(name)}`,UI.links.searchWiki,wikiDomain,'📖'))+
+    linkRow(`https://www.google.com/maps/search/${mQ}`,UI.links.maps,'maps.google.com','📍')+
+    linkRow(`https://www.google.com/search?q=${gQ}`,UI.links.google,'google.com','🔍')+
+    linkRow(perplexityUrl,UI.links.perplexity,'perplexity.ai','🤖');
 
   // Contenu principal — Wikipedia
   if(res.wiki?.extract){
     const extract=res.wiki.extract.length>600?res.wiki.extract.slice(0,600).replace(/\s+\S*$/,'')+'…':res.wiki.extract;
     badge.className='source-badge info';
-    badge.textContent='📖 Source : Wikipédia';
+    badge.textContent=UI.source.wikipedia;
     let html='';
     if(res.wiki.thumbnail?.source) html+=`<img src="${res.wiki.thumbnail.source}" class="wiki-thumb" alt="${name}" loading="lazy">`;
     html+=`<p class="wiki-text">${extract}</p>`;
-    if(res.oldName) html+=`<p class="old-name">📜 Anciennement : <strong>${res.oldName}</strong></p>`;
+    if(res.oldName) html+=`<p class="old-name">${UI.source.oldName} <strong>${res.oldName}</strong></p>`;
     wikiEl.innerHTML=html;
   }else{
     badge.className='source-badge dim';
-    badge.textContent='◌ Aucune information Wikipedia trouvée';
-    const oldNameHtml=res.oldName?`<p class="old-name" style="margin-top:1rem">📜 Anciennement : <strong>${res.oldName}</strong></p>`:'';
-    wikiEl.innerHTML=`<div class="empty"><p class="empty-ico">🔍</p><p>Aucune information disponible pour <strong>${name}</strong>.<br>Utilisez les liens ci-dessous pour en savoir plus.</p></div>${oldNameHtml}`;
+    badge.textContent=UI.source.noWiki;
+    const oldNameHtml=res.oldName?`<p class="old-name" style="margin-top:1rem">${UI.source.oldName} <strong>${res.oldName}</strong></p>`:'';
+    wikiEl.innerHTML=`<div class="empty"><p class="empty-ico">🔍</p><p>${UI.empty.noInfo(name)}</p></div>${oldNameHtml}`;
   }
 }
 
@@ -610,7 +676,7 @@ async function renderPlaques(){
     L.control.zoom({position:'bottomright'}).addTo(map);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
     const uIco=L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#f59e0b;border:3px solid #fff;border-radius:50%;box-shadow:0 0 8px rgba(245,158,11,.6)"></div>',iconAnchor:[7,7]});
-    L.marker([lat,lon],{icon:uIco}).addTo(map).bindPopup('<strong>Vous êtes ici</strong>');
+    L.marker([lat,lon],{icon:uIco}).addTo(map).bindPopup(`<strong>${UI.map.youAreHere}</strong>`);
     const pIco=L.divIcon({className:'',html:'<div style="width:12px;height:12px;background:#3b82f6;border:2px solid #fff;border-radius:50%;"></div>',iconAnchor:[6,6]});
     for(const p of state.plaques) L.marker([p.lat,p.lon],{icon:pIco}).addTo(map).bindPopup(`<strong>${p.name}</strong><br><small>${fmtDist(p.distance)}</small>`);
     state.mapInstance=map;
@@ -619,7 +685,7 @@ async function renderPlaques(){
   }
 
   const list=document.getElementById('plaques-list');
-  if(!state.plaques.length){list.innerHTML='<div class="plaques-empty">🏅<br><br>Aucune plaque recensée dans un rayon de 500 m.</div>';return;}
+  if(!state.plaques.length){list.innerHTML=`<div class="plaques-empty">🏅<br><br>${UI.empty.noPlaque}</div>`;return;}
   list.innerHTML=state.plaques.map((p,i)=>{
     const thumb=p.photo
       ?`<img src="${p.photo}" class="pl-thumb" alt="${p.name}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\"pl-placeholder\\">🏅</div>'">`
@@ -662,7 +728,7 @@ async function renderMonuments(){
     L.control.zoom({position:'bottomright'}).addTo(map);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
     const uIco=L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#f59e0b;border:3px solid #fff;border-radius:50%;box-shadow:0 0 8px rgba(245,158,11,.6)"></div>',iconAnchor:[7,7]});
-    L.marker([lat,lon],{icon:uIco}).addTo(map).bindPopup('<strong>Vous êtes ici</strong>');
+    L.marker([lat,lon],{icon:uIco}).addTo(map).bindPopup(`<strong>${UI.map.youAreHere}</strong>`);
     const mIco=L.divIcon({className:'',html:'<div style="width:13px;height:13px;background:#10b981;border:2px solid #fff;border-radius:3px;"></div>',iconAnchor:[6,6]});
     for(const m of state.monuments)
       L.marker([m.lat,m.lon],{icon:mIco}).addTo(map)
@@ -674,7 +740,7 @@ async function renderMonuments(){
 
   const list=document.getElementById('mh-list');
   if(!state.monuments.length){
-    list.innerHTML='<div class="plaques-empty">🏛️<br><br>Aucun monument historique recensé dans un rayon de 500 m.</div>';
+    list.innerHTML=`<div class="plaques-empty">🏛️<br><br>${UI.empty.noMH}</div>`;
     return;
   }
   list.innerHTML=state.monuments.map((m,i)=>{
@@ -694,8 +760,8 @@ async function renderMonuments(){
         <span class="mh-chev">›</span>
       </div>
       <div class="mh-detail">
-        ${m.merimeeUrl?`<a href="${m.merimeeUrl}" target="_blank" rel="noopener" class="mh-link">📋 Fiche Mérimée (Ministère de la Culture)</a>`:''}
-        <a href="https://www.google.com/search?q=${encodeURIComponent(m.name+' '+state.cityName+' monument historique')}" target="_blank" rel="noopener" class="mh-link">🔍 Rechercher sur Google</a>
+        ${m.merimeeUrl?`<a href="${m.merimeeUrl}" target="_blank" rel="noopener" class="mh-link">📋 ${UI.links.merimee}</a>`:''}
+        <a href="https://www.google.com/search?q=${encodeURIComponent(m.name+' '+state.cityName+' '+UI.search.googleSuffix)}" target="_blank" rel="noopener" class="mh-link">🔍 ${UI.links.google}</a>
       </div>
     </div>`;
   }).join('');
@@ -726,22 +792,22 @@ async function locateAndLoad(){
   showScreen('screen-splash');
   document.getElementById('btn-retry').classList.add('hidden');
   document.getElementById('splash-spinner').style.display='';
-  splashText('Localisation en cours…');
+  splashText(UI.splash.locating);
 
-  if(!navigator.geolocation){splashError('Géolocalisation non supportée.');return;}
+  if(!navigator.geolocation){splashError(UI.splash.noGeo);return;}
 
   navigator.geolocation.getCurrentPosition(
     async pos=>{
       const{latitude:lat,longitude:lon}=pos.coords;
       state.coords={lat,lon};
-      splashText('Identification de la rue…');
+      splashText(UI.splash.street);
       try{
         const data=await reverseGeocode(lat,lon);
         state.nominatim=data;
         const road=data.address?.road||data.address?.pedestrian||data.address?.footway||data.address?.path||'';
-        if(!road){splashError('Aucune rue identifiée ici. Essayez depuis une rue.');return;}
+        if(!road){splashError(UI.splash.noRoad);return;}
 
-        splashText('Vérification des rues à proximité…');
+        splashText(UI.splash.nearby);
         const nearby=await fetchNearbyStreets(lat,lon);
         const all=[...new Set([road,...nearby])].filter(Boolean).slice(0,5);
         state.nearbyStreets=all;
@@ -754,12 +820,12 @@ async function locateAndLoad(){
           state.streetSimple=simplified;state.streetType=type;
           renderHome();
         }
-      }catch{splashError('Erreur réseau. Vérifiez votre connexion.');}
+      }catch{splashError(UI.splash.errNet);}
     },
     err=>{
-      if(err.code===1) splashError('Position refusée. Autorisez la géolocalisation dans les réglages.');
-      else if(err.code===3) splashError('Délai GPS dépassé. Réessayez à l\'extérieur.');
-      else splashError('Position indisponible. Réessayez.');
+      if(err.code===1) splashError(UI.splash.gpsRefused);
+      else if(err.code===3) splashError(UI.splash.gpsTimeout);
+      else splashError(UI.splash.gpsError);
     },
     {enableHighAccuracy:true,timeout:13000,maximumAge:0}
   );
@@ -832,7 +898,7 @@ function applyEdit(){
   document.getElementById('manual-notice').classList.remove('hidden');
   document.getElementById('plaques-badge').classList.add('hidden');
   document.getElementById('plaques-loading').classList.add('hidden');
-  toast(`✏️ Nom modifié : ${simplified}`);
+  toast(UI.share.editOk(simplified));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
