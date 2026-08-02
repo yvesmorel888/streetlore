@@ -196,10 +196,13 @@ async function geocodeCity(cityName){
 
 async function fetchComcom(lat,lon){
   try{
-    const ql=`[out:json][timeout:12];is_in(${lat},${lon})->.a;(rel(pivot.a)["boundary"="administrative"];rel(pivot.a)["boundary"="local_authority"];);out tags;`;
-    const d=await overpass(ql);
-    const epci=(d.elements||[]).find(e=>/communaut|m[eé]tropole|agglom[eé]ration|intercommunal/i.test(e.tags?.name||''));
-    return epci?.tags?.name||null;
+    const u=new URL('https://geo.api.gouv.fr/communes');
+    u.searchParams.set('lat',lat);u.searchParams.set('lon',lon);
+    u.searchParams.set('fields','nom,epci');
+    const r=await withTimeout(fetch(u),8000);
+    if(!r.ok) return null;
+    const data=await r.json();
+    return data[0]?.epci?.nom||null;
   }catch{return null;}
 }
 

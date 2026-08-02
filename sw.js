@@ -1,4 +1,4 @@
-const CACHE = 'streetlore-v25';
+const CACHE = 'streetlore-v26';
 const SHELL = ['./', './index.html', './style.css', './app.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
@@ -24,6 +24,7 @@ self.addEventListener('fetch', e => {
     url.includes('wikipedia') ||
     url.includes('wikidata') ||
     url.includes('overpass') ||
+    url.includes('geo.api.gouv.fr') ||
     url.includes('openplaques') ||
     url.includes('commons.wikimedia') ||
     url.includes('data.culture.gouv') ||
