@@ -497,8 +497,24 @@ async function fetchStreetInfo(simple,full,city,lat,lon){
   };
 }
 
-async function fetchCityInfo(city){
-  const wiki=await wikiSummary(city).catch(()=>null);
+async function fetchCityInfo(name){
+  let wiki=await wikiSummary(name).catch(()=>null);
+  if(!wiki?.extract){
+    try{
+      const u=new URL(`https://${LOCALE.wikipedia}.wikipedia.org/w/api.php`);
+      u.searchParams.set('action','query');u.searchParams.set('list','search');
+      u.searchParams.set('srsearch',name);u.searchParams.set('format','json');
+      u.searchParams.set('origin','*');u.searchParams.set('srlimit','3');
+      const r=await withTimeout(fetch(u),6000);
+      if(r.ok){
+        const results=(await r.json()).query?.search??[];
+        for(const res of results){
+          const s=await wikiSummary(res.title);
+          if(s?.extract&&s.type!=='disambiguation'){wiki=s;break;}
+        }
+      }
+    }catch{}
+  }
   return{wiki};
 }
 
@@ -970,9 +986,9 @@ document.getElementById('btn-edit-ok').addEventListener('click',applyEdit);
 
 function applyEdit(){
   const raw=document.getElementById('edit-input').value.trim();
-  if(!raw) return;
   const cityRaw=document.getElementById('edit-city-input').value.trim();
-  const{simplified,type}=parseStreet(raw);
+  if(!raw&&!cityRaw) return;
+  const{simplified,type}=raw?parseStreet(raw):{simplified:'',type:''};
   if(!cityRaw){_applyEdit(raw,simplified,type,'',null);return;}
   const sugDiv=document.getElementById('city-suggestions');
   sugDiv.innerHTML='<span class="city-sug-loading">Recherche…</span>';
@@ -1003,19 +1019,21 @@ function applyEdit(){
 }
 
 function _applyEdit(raw,simplified,type,cityName,geoResult){
-  state.streetSimple=simplified;state.streetType=type;state.streetFull=raw;
+  if(raw){
+    state.streetSimple=simplified;state.streetType=type;state.streetFull=raw;
+    document.getElementById('home-type').textContent=type;
+    document.getElementById('home-name').textContent=simplified;
+    document.getElementById('sub-street').textContent=simplified;
+  }
   state.manualEdit=true;state.manualCity=cityName;state.wikiCache={};
   if(cityName) state.cityName=cityName;
-  document.getElementById('home-type').textContent=type;
-  document.getElementById('home-name').textContent=simplified;
   document.getElementById('home-city').textContent=cityName?`📍 ${cityName}`:(state.nominatim?document.getElementById('home-city').textContent:'');
-  document.getElementById('sub-street').textContent=simplified;
   document.getElementById('sub-city').textContent=cityName||state.cityName;
   document.getElementById('edit-form').classList.remove('open');
   document.getElementById('manual-notice').classList.remove('hidden');
   document.getElementById('plaques-badge').classList.add('hidden');
   document.getElementById('plaques-loading').classList.add('hidden');
-  toast(UI.share.editOk(simplified));
+  toast(raw?UI.share.editOk(simplified):cityName?`✏️ Ville : ${cityName}`:'✏️ Mode test activé');
   if(!geoResult) return;
   const addr=geoResult.address||{};
   const dept=addr.county||'';const region=addr.state||'';
