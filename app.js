@@ -652,8 +652,10 @@ async function renderResults(type,sharedName,sharedCity){
       ['city','Ville'],['town','Ville'],['village','Village'],
       ['municipality','Commune'],['county','Département'],['postcode','Code postal'],
     ]){
-      // En mode test, substituer la ville manuelle pour les champs ville/commune
-      const val=(CITY_KEYS.has(k)&&state.manualCity)?state.manualCity:addr[k];
+      // En mode test, substituer ville et département manuels
+      const val=(CITY_KEYS.has(k)&&state.manualCity)?state.manualCity:
+                (k==='county'&&state.manualEdit&&state.deptName)?state.deptName:
+                addr[k];
       if(val&&!seen.has(label)){seen.add(label);items.push({label,value:val});}
       if(items.length>=4) break;
     }
@@ -686,8 +688,16 @@ function applyWikiSection(res,name,city){
   const linksEl=document.getElementById('links-content');
 
   const isStreetResult=(state.resultType==='street');
-  const searchBase=isStreetResult?(state.streetFull?`${state.streetFull} ${city}`:name):name;
-  const perplexityUrl=`https://www.perplexity.ai/search?q=${encodeURIComponent(UI.search.perplexityPrefix+' '+searchBase)}`;
+  let perplexityQ;
+  if(isStreetResult){
+    const simpleCap=(state.streetSimple||name).charAt(0).toUpperCase()+(state.streetSimple||name).slice(1);
+    const isArticle=/^(le|la|les|l'|du|de|des)$/i.test(state.streetType||'');
+    const typeStr=isArticle?'rue':state.streetType||'rue';
+    perplexityQ=`${typeStr.charAt(0).toUpperCase()+typeStr.slice(1)} ${simpleCap} ${city} histoire`;
+  }else{
+    perplexityQ=`Histoire de ${name}`;
+  }
+  const perplexityUrl=`https://www.perplexity.ai/search?q=${encodeURIComponent(perplexityQ)}`;
   const mQ=encodeURIComponent(isStreetResult?`${state.streetFull||name} ${city}`:name);
   const gQ=encodeURIComponent(`${name} ${UI.search.googleSuffix}`);
   const wikiDomain=`${LOCALE.wikipedia}.wikipedia.org`;
