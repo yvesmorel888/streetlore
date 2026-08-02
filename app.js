@@ -181,6 +181,20 @@ async function overpass(ql){
   return r.json();
 }
 
+async function geocodeCity(cityName){
+  try{
+    const u=new URL('https://nominatim.openstreetmap.org/search');
+    u.searchParams.set('q',cityName);u.searchParams.set('format','json');
+    u.searchParams.set('addressdetails','1');u.searchParams.set('limit','1');
+    u.searchParams.set('accept-language',LOCALE.lang);
+    u.searchParams.set('countrycodes',LOCALE.country.toLowerCase());
+    const r=await withTimeout(fetch(u,{headers:{'User-Agent':'StreetLore/3.1'}}),8000);
+    if(!r.ok) return null;
+    const data=await r.json();
+    return data[0]||null;
+  }catch{return null;}
+}
+
 async function fetchComcom(lat,lon){
   try{
     const ql=`[out:json][timeout:8];is_in(${lat},${lon})->.a;rel(pivot.a)["boundary"="administrative"];out tags;`;
@@ -977,6 +991,26 @@ function applyEdit(){
   document.getElementById('plaques-badge').classList.add('hidden');
   document.getElementById('plaques-loading').classList.add('hidden');
   toast(UI.share.editOk(simplified));
+  // Géocoder la ville saisie pour mettre à jour dept / région / CC
+  if(cityRaw){
+    geocodeCity(cityRaw).then(result=>{
+      if(!result?.address) return;
+      const addr=result.address;
+      const dept=addr.county||'';
+      const region=addr.state||'';
+      state.deptName=dept;state.regionName=region;
+      document.getElementById('sub-dept').textContent=dept;
+      document.getElementById('sub-region').textContent=region;
+      state.comcomName='';
+      document.getElementById('sub-comcom').textContent='';
+      const lat=parseFloat(result.lat);const lon=parseFloat(result.lon);
+      if(!isNaN(lat)&&!isNaN(lon)){
+        fetchComcom(lat,lon).then(cc=>{
+          if(cc){state.comcomName=cc;document.getElementById('sub-comcom').textContent=cc;}
+        }).catch(()=>{});
+      }
+    }).catch(()=>{});
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
