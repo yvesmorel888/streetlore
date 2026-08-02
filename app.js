@@ -185,21 +185,20 @@ async function geocodeCity(cityName){
   try{
     const u=new URL('https://nominatim.openstreetmap.org/search');
     u.searchParams.set('q',cityName);u.searchParams.set('format','json');
-    u.searchParams.set('addressdetails','1');u.searchParams.set('limit','1');
+    u.searchParams.set('addressdetails','1');u.searchParams.set('limit','5');
     u.searchParams.set('accept-language',LOCALE.lang);
     u.searchParams.set('countrycodes',LOCALE.country.toLowerCase());
-    const r=await withTimeout(fetch(u,{headers:{'User-Agent':'StreetLore/3.1'}}),8000);
-    if(!r.ok) return null;
-    const data=await r.json();
-    return data[0]||null;
-  }catch{return null;}
+    const r=await withTimeout(fetch(u,{headers:{'User-Agent':'StreetLore/3.2'}}),8000);
+    if(!r.ok) return [];
+    return await r.json();
+  }catch{return [];}
 }
 
 async function fetchComcom(lat,lon){
   try{
-    const ql=`[out:json][timeout:8];is_in(${lat},${lon})->.a;rel(pivot.a)["boundary"="administrative"];out tags;`;
+    const ql=`[out:json][timeout:12];is_in(${lat},${lon})->.a;(rel(pivot.a)["boundary"="administrative"];rel(pivot.a)["boundary"="local_authority"];);out tags;`;
     const d=await overpass(ql);
-    const epci=(d.elements||[]).find(e=>/communaut|métropole|agglomération/i.test(e.tags?.name||''));
+    const epci=(d.elements||[]).find(e=>/communaut|m[eé]tropole|agglom[eé]ration|intercommunal/i.test(e.tags?.name||''));
     return epci?.tags?.name||null;
   }catch{return null;}
 }
@@ -632,7 +631,7 @@ async function renderResults(type,sharedName,sharedCity){
 
   const isStreet=(type==='street');
   const nameMap={street:state.streetSimple,city:state.cityName,comcom:state.comcomName,dept:state.deptName,region:state.regionName};
-  const eyebrowMap={street:state.streetType,city:'Ville',comcom:'Communauté de communes',dept:'Département',region:'Région'};
+  const eyebrowMap={street:state.streetType,city:'Ville',comcom:'Intercommunalité',dept:'Département',region:'Région'};
   const name=sharedName||nameMap[type]||'';
   const city=sharedCity||state.cityName;
   const addr=state.nominatim?.address||{};
@@ -978,37 +977,60 @@ function applyEdit(){
   if(!raw) return;
   const cityRaw=document.getElementById('edit-city-input').value.trim();
   const{simplified,type}=parseStreet(raw);
+  if(!cityRaw){_applyEdit(raw,simplified,type,'',null);return;}
+  const sugDiv=document.getElementById('city-suggestions');
+  sugDiv.innerHTML='<span class="city-sug-loading">Recherche…</span>';
+  sugDiv.classList.remove('hidden');
+  geocodeCity(cityRaw).then(results=>{
+    if(!results||results.length===0){
+      sugDiv.innerHTML='<span class="city-sug-none">Ville introuvable — nom conservé</span>';
+      setTimeout(()=>{sugDiv.classList.add('hidden');sugDiv.innerHTML='';},2000);
+      _applyEdit(raw,simplified,type,cityRaw,null);
+    }else if(results.length===1){
+      sugDiv.classList.add('hidden');sugDiv.innerHTML='';
+      const r=results[0];
+      const city=r.address?.town||r.address?.village||r.address?.city||r.address?.municipality||r.display_name.split(',')[0].trim();
+      _applyEdit(raw,simplified,type,city,r);
+    }else{
+      sugDiv.innerHTML='<p class="city-sug-label">Plusieurs résultats — choisissez :</p>';
+      results.forEach(r=>{
+        const city=r.address?.town||r.address?.village||r.address?.city||r.address?.municipality||r.display_name.split(',')[0].trim();
+        const dept=r.address?.county||r.address?.state_district||'';
+        const btn=document.createElement('button');
+        btn.className='city-sug-item';
+        btn.textContent=dept?`${city} (${dept})`:city;
+        btn.addEventListener('click',()=>{sugDiv.classList.add('hidden');sugDiv.innerHTML='';_applyEdit(raw,simplified,type,city,r);});
+        sugDiv.appendChild(btn);
+      });
+    }
+  }).catch(()=>{sugDiv.classList.add('hidden');sugDiv.innerHTML='';_applyEdit(raw,simplified,type,cityRaw,null);});
+}
+
+function _applyEdit(raw,simplified,type,cityName,geoResult){
   state.streetSimple=simplified;state.streetType=type;state.streetFull=raw;
-  state.manualEdit=true;state.manualCity=cityRaw;state.wikiCache={};
-  if(cityRaw) state.cityName=cityRaw;
+  state.manualEdit=true;state.manualCity=cityName;state.wikiCache={};
+  if(cityName) state.cityName=cityName;
   document.getElementById('home-type').textContent=type;
   document.getElementById('home-name').textContent=simplified;
-  document.getElementById('home-city').textContent=cityRaw?`📍 ${cityRaw}`:(state.nominatim?document.getElementById('home-city').textContent:'');
+  document.getElementById('home-city').textContent=cityName?`📍 ${cityName}`:(state.nominatim?document.getElementById('home-city').textContent:'');
   document.getElementById('sub-street').textContent=simplified;
-  document.getElementById('sub-city').textContent=cityRaw||state.cityName;
+  document.getElementById('sub-city').textContent=cityName||state.cityName;
   document.getElementById('edit-form').classList.remove('open');
   document.getElementById('manual-notice').classList.remove('hidden');
   document.getElementById('plaques-badge').classList.add('hidden');
   document.getElementById('plaques-loading').classList.add('hidden');
   toast(UI.share.editOk(simplified));
-  // Géocoder la ville saisie pour mettre à jour dept / région / CC
-  if(cityRaw){
-    geocodeCity(cityRaw).then(result=>{
-      if(!result?.address) return;
-      const addr=result.address;
-      const dept=addr.county||'';
-      const region=addr.state||'';
-      state.deptName=dept;state.regionName=region;
-      document.getElementById('sub-dept').textContent=dept;
-      document.getElementById('sub-region').textContent=region;
-      state.comcomName='';
-      document.getElementById('sub-comcom').textContent='';
-      const lat=parseFloat(result.lat);const lon=parseFloat(result.lon);
-      if(!isNaN(lat)&&!isNaN(lon)){
-        fetchComcom(lat,lon).then(cc=>{
-          if(cc){state.comcomName=cc;document.getElementById('sub-comcom').textContent=cc;}
-        }).catch(()=>{});
-      }
+  if(!geoResult) return;
+  const addr=geoResult.address||{};
+  const dept=addr.county||'';const region=addr.state||'';
+  state.deptName=dept;state.regionName=region;
+  document.getElementById('sub-dept').textContent=dept;
+  document.getElementById('sub-region').textContent=region;
+  state.comcomName='';document.getElementById('sub-comcom').textContent='';
+  const lat=parseFloat(geoResult.lat);const lon=parseFloat(geoResult.lon);
+  if(!isNaN(lat)&&!isNaN(lon)){
+    fetchComcom(lat,lon).then(cc=>{
+      if(cc){state.comcomName=cc;document.getElementById('sub-comcom').textContent=cc;}
     }).catch(()=>{});
   }
 }
