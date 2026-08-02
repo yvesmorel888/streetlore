@@ -606,14 +606,17 @@ async function renderResults(type,sharedName,sharedCity){
   showScreen('screen-results');
 
   // Quartier (rue seulement)
-  if(isStreet&&state.nominatim){
+  if(isStreet){
+    const CITY_KEYS=new Set(['city','town','village','municipality']);
     const items=[],seen=new Set();
     for(const[k,label]of[
       ['neighbourhood','Quartier'],['suburb','Quartier'],['city_district','Arrondissement'],
       ['city','Ville'],['town','Ville'],['village','Village'],
       ['municipality','Commune'],['county','Département'],['postcode','Code postal'],
     ]){
-      if(addr[k]&&!seen.has(label)){seen.add(label);items.push({label,value:addr[k]});}
+      // En mode test, substituer la ville manuelle pour les champs ville/commune
+      const val=(CITY_KEYS.has(k)&&state.manualCity)?state.manualCity:addr[k];
+      if(val&&!seen.has(label)){seen.add(label);items.push({label,value:val});}
       if(items.length>=4) break;
     }
     const nbEl=document.getElementById('nb-content');
