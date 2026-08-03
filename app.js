@@ -275,6 +275,26 @@ async function enrichPlaquesPhotos(list){
 // API — MONUMENTS HISTORIQUES (500 m)
 // ═══════════════════════════════════════════════════════════════════════════
 
+function parseMHRecord(rec,refLat,refLon){
+  const coords=rec.coordonnees_gps;
+  const lat2=coords?.lat??coords?.latitude;
+  const lon2=coords?.lon??coords?.longitude;
+  if(!lat2||!lon2) return null;
+  const ref=rec.reference_de_la_notice_merimee||'';
+  const rawType=(rec.type_de_protection||rec.type_protection||'').toLowerCase();
+  const type=rawType.includes('class')?'classé MH':rawType.includes('inscrit')?'inscrit MH':'MH';
+  const year=(rec.date_de_protection||'').slice(0,4)||'';
+  const merimeeUrl=ref?`https://www.pop.culture.gouv.fr/notice/merimee/${ref}`:'';
+  return{
+    id:ref||`mh-${lat2}-${lon2}`,
+    name:rec.appellation_courante||'Monument historique',
+    type,adresse:rec.adresse_de_localisation||rec.adresse||'',year,merimeeUrl,
+    lat:lat2,lon:lon2,
+    distance:(refLat&&refLon)?haversine(refLat,refLon,lat2,lon2):null,
+  };
+}
+
+// GPS mode : 500 m autour de la position
 async function fetchMonumentsHistoriques(lat,lon){
   try{
     const url=new URL('https://data.culture.gouv.fr/api/explore/v2.1/catalog/datasets/liste-des-immeubles-proteges-au-titre-des-monuments-historiques/records');
@@ -283,29 +303,20 @@ async function fetchMonumentsHistoriques(lat,lon){
     url.searchParams.set('order_by',`dist(coordonnees_gps, geom'POINT(${lon} ${lat})')`);
     const r=await withTimeout(fetch(url,{headers:{Accept:'application/json'}}),10000);
     if(!r.ok) return[];
-    const data=await r.json();
-    return(data.results||[]).map(rec=>{
-      const coords=rec.coordonnees_gps;
-      const lat2=coords?.lat??coords?.latitude;
-      const lon2=coords?.lon??coords?.longitude;
-      if(!lat2||!lon2) return null;
-      const ref=rec.reference_de_la_notice_merimee||'';
-      const rawType=(rec.type_de_protection||rec.type_protection||'').toLowerCase();
-      const type=rawType.includes('class')?'classé MH':rawType.includes('inscrit')?'inscrit MH':'MH';
-      const rawDate=rec.date_de_protection||'';
-      const year=rawDate.slice(0,4)||'';
-      const merimeeUrl=ref?`https://www.pop.culture.gouv.fr/notice/merimee/${ref}`:'';
-      return{
-        id:ref||`mh-${lat2}-${lon2}`,
-        name:rec.appellation_courante||'Monument historique',
-        type,
-        adresse:rec.adresse_de_localisation||rec.adresse||'',
-        year,
-        merimeeUrl,
-        lat:lat2,lon:lon2,
-        distance:haversine(lat,lon,lat2,lon2),
-      };
-    }).filter(Boolean).sort((a,b)=>a.distance-b.distance);
+    return(await r.json()).results?.map(rec=>parseMHRecord(rec,lat,lon)).filter(Boolean)??[];
+  }catch{return[];}
+}
+
+// Mode manuel : tous les monuments de la commune (par nom), triés par distance au centre
+async function fetchMonumentsCommune(cityName,refLat,refLon){
+  try{
+    const url=new URL('https://data.culture.gouv.fr/api/explore/v2.1/catalog/datasets/liste-des-immeubles-proteges-au-titre-des-monuments-historiques/records');
+    url.searchParams.set('where',`commune="${cityName.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/'/g,' ')}"`);
+    url.searchParams.set('limit','100');
+    const r=await withTimeout(fetch(url,{headers:{Accept:'application/json'}}),10000);
+    if(!r.ok) return[];
+    const list=(await r.json()).results?.map(rec=>parseMHRecord(rec,refLat,refLon)).filter(Boolean)??[];
+    return list.sort((a,b)=>(a.distance??0)-(b.distance??0));
   }catch{return[];}
 }
 
@@ -798,8 +809,9 @@ async function renderPlaques(){
 
 async function renderMonuments(){
   const{lat,lon}=state.manualCoords||state.coords;
-  document.getElementById('mh-subtitle').textContent=
-    `${state.monuments.length} trouvé${state.monuments.length>1?'s':''} · 500 m · ${state.cityName}`;
+  document.getElementById('mh-subtitle').textContent=state.manualEdit
+    ?`${state.monuments.length} trouvé${state.monuments.length>1?'s':''} · ${state.cityName}`
+    :`${state.monuments.length} trouvé${state.monuments.length>1?'s':''} · 500 m · ${state.cityName}`;
   showScreen('screen-monuments');
 
   try{
@@ -837,7 +849,7 @@ async function renderMonuments(){
             ${m.year?`<span class="mh-year">depuis ${m.year}</span>`:''}
           </div>
           ${m.adresse?`<p class="mh-adresse">${m.adresse}</p>`:''}
-          <p class="mh-dist">${fmtDist(m.distance)}</p>
+          ${m.distance!==null?`<p class="mh-dist">${fmtDist(m.distance)}</p>`:''}
         </div>
         <span class="mh-chev">›</span>
       </div>
@@ -1077,7 +1089,7 @@ function _applyEdit(raw,simplified,type,cityName,geoResult){
     if(LOCALE.features.monuments){
       document.getElementById('mh-badge').classList.add('hidden');
       document.getElementById('mh-loading').classList.remove('hidden');
-      fetchMonumentsHistoriques(lat,lon).then(mh=>{
+      fetchMonumentsCommune(cityName,lat,lon).then(mh=>{
         state.monuments=mh;
         document.getElementById('mh-loading').classList.add('hidden');
         if(mh.length){
