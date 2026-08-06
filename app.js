@@ -73,6 +73,7 @@ const state = {
   streetSimple:  '',
   cityName:      '',
   comcomName:    '',
+  comcomWikiTitle:'',
   deptName:      '',
   regionName:    '',
   plaques:       [],
@@ -203,7 +204,24 @@ async function fetchComcom(lat,lon){
     const r=await withTimeout(fetch(u),8000);
     if(!r.ok) return null;
     const data=await r.json();
-    return data[0]?.epci?.nom||null;
+    const epci=data[0]?.epci;
+    if(!epci?.nom) return null;
+    return{nom:epci.nom,code:epci.code||null};
+  }catch{return null;}
+}
+
+async function fetchEpciWikiTitle(siren){
+  if(!siren) return null;
+  try{
+    const sparql=`SELECT ?sitelink WHERE{?item wdt:P2585 "${siren}".?sitelink schema:about ?item;schema:isPartOf <https://fr.wikipedia.org/>.}LIMIT 1`;
+    const u=new URL('https://query.wikidata.org/sparql');
+    u.searchParams.set('query',sparql);
+    u.searchParams.set('format','json');
+    const r=await withTimeout(fetch(u,{headers:{Accept:'application/sparql-results+json','User-Agent':'StreetLore/3.9'}}),8000);
+    if(!r.ok) return null;
+    const link=((await r.json()).results?.bindings||[])[0]?.sitelink?.value||null;
+    if(!link) return null;
+    return decodeURIComponent(link.split('/wiki/')[1]||'').replace(/_/g,' ')||null;
   }catch{return null;}
 }
 
@@ -593,7 +611,7 @@ function renderHome(){
   state.cityName=city;
   const dept=addr.county||'';
   const region=addr.state||'';
-  state.comcomName='';state.deptName=dept;state.regionName=region;
+  state.comcomName='';state.comcomWikiTitle='';state.deptName=dept;state.regionName=region;
   document.getElementById('home-type').textContent=state.streetType;
   document.getElementById('home-name').textContent=state.streetSimple||'—';
   document.getElementById('home-city').textContent=city?`📍 ${[addr.city_district,city].filter(Boolean).join(' · ')}`:'';
@@ -625,9 +643,12 @@ function renderHome(){
 
   const{lat,lon}=state.coords;
 
-  // Communauté de communes via geo.api.gouv.fr
-  fetchComcom(lat,lon).then(cc=>{
-    if(cc){state.comcomName=cc;document.getElementById('sub-comcom').textContent=cc;}
+  // Communauté de communes via geo.api.gouv.fr → titre Wikipedia via Wikidata (SIREN)
+  fetchComcom(lat,lon).then(epci=>{
+    if(!epci) return;
+    state.comcomName=epci.nom;
+    document.getElementById('sub-comcom').textContent=epci.nom;
+    fetchEpciWikiTitle(epci.code).then(t=>{if(t)state.comcomWikiTitle=t;}).catch(()=>{});
   }).catch(()=>{});
 
   fetchAllPlaques(lat,lon).then(pl=>{
@@ -670,8 +691,11 @@ async function renderResults(type,sharedName,sharedCity){
 
   const isStreet=(type==='street');
   const nameMap={street:state.streetSimple,city:state.cityName,comcom:state.comcomName,dept:state.deptName,region:state.regionName};
+  // Pour l'intercommunalité : lookup Wikipedia via le titre exact Wikidata (SIREN), fallback sur le nom affiché
+  const wikiLookupMap={...nameMap,comcom:state.comcomWikiTitle||state.comcomName};
   const eyebrowMap={street:state.streetType,city:'Ville',comcom:'Intercommunalité',dept:'Département',region:'Région'};
   const name=sharedName||nameMap[type]||'';
+  const wikiName=sharedName||wikiLookupMap[type]||'';
   const city=sharedCity||state.cityName;
   const addr=state.nominatim?.address||{};
 
@@ -682,12 +706,12 @@ async function renderResults(type,sharedName,sharedCity){
   showScreen('screen-results');
 
 
-  // Fetch IA + Wikipedia en parallèle
-  const cacheKey=`${type}:${name}`;
+  // Fetch Wikipedia — pour les CC, utilise le titre exact résolu via Wikidata
+  const cacheKey=`${type}:${wikiName}`;
   if(!state.wikiCache[cacheKey]){
     state.wikiCache[cacheKey]=isStreet
       ?fetchStreetInfo(name,state.streetFull||name,city,state.coords?.lat,state.coords?.lon)
-      :fetchCityInfo(name);
+      :fetchCityInfo(wikiName);
   }
 
   let res;
@@ -786,10 +810,11 @@ async function renderPlaques(){
     const detail=
       (p.photo?`<img src="${p.photo}" class="pd-photo" alt="${p.name}" loading="lazy">`:'')+
       (p.inscription?`<p class="pd-inscription">"${p.inscription.slice(0,300)}${p.inscription.length>300?'…':''}"</p>`:'')+
-      (p.wikiUrl?`<a href="${p.wikiUrl}" target="_blank" rel="noopener" class="pd-wiki">📖 Voir sur Wikipédia</a>`:'');
+      (p.wikiUrl?`<a href="${p.wikiUrl}" target="_blank" rel="noopener" class="pd-wiki">📖 Voir sur Wikipédia</a>`:'')+
+      '<div class="pd-wiki-lazy"></div>';
     return`<div class="plaque-item" data-i="${i}">
       <div class="plaque-summary">${thumb}<div class="pl-info"><p class="pl-name">${p.name}</p><p class="pl-dist">${fmtDist(p.distance)}</p></div><span class="pl-chev">›</span></div>
-      <div class="plaque-detail"><div class="pd-inner">${detail||'<p style="color:var(--muted);font-size:.85rem">Aucun détail disponible.</p>'}</div></div>
+      <div class="plaque-detail"><div class="pd-inner">${detail}</div></div>
     </div>`;
   }).join('');
 
@@ -798,7 +823,23 @@ async function renderPlaques(){
       const item=el.closest('.plaque-item');
       const was=item.classList.contains('open');
       list.querySelectorAll('.plaque-item').forEach(i=>i.classList.remove('open'));
-      if(!was){item.classList.add('open');const p=state.plaques[+item.dataset.i];if(state.mapInstance)state.mapInstance.flyTo([p.lat,p.lon],17,{duration:.8});}
+      if(!was){
+        item.classList.add('open');
+        const p=state.plaques[+item.dataset.i];
+        if(state.mapInstance)state.mapInstance.flyTo([p.lat,p.lon],17,{duration:.8});
+        const wikiEl=item.querySelector('.pd-wiki-lazy');
+        if(wikiEl&&!wikiEl.dataset.loaded){
+          wikiEl.dataset.loaded='1';
+          wikiEl.innerHTML='<div class="sk short"></div>';
+          fetchCityInfo(p.name).then(({wiki})=>{
+            if(!wiki?.extract){wikiEl.innerHTML='';return;}
+            const img=wiki.thumbnail?.source?`<img class="mh-wiki-img" src="${wiki.thumbnail.source}" alt="" loading="lazy">`:'';
+            const text=wiki.extract.length>280?wiki.extract.slice(0,280).replace(/\s+\S*$/,'')+'…':wiki.extract;
+            const link=wiki.content_urls?.mobile?.page||wiki.content_urls?.desktop?.page||'';
+            wikiEl.innerHTML=img+`<p class="mh-wiki-text">${text}</p>`+(link?`<a href="${link}" target="_blank" rel="noopener" class="pd-wiki">📖 Wikipedia</a>`:'');
+          }).catch(()=>{wikiEl.innerHTML='';});
+        }
+      }
     });
   });
 }
@@ -1020,18 +1061,26 @@ function applyEdit(){
   sugDiv.innerHTML='<span class="city-sug-loading">Recherche…</span>';
   sugDiv.classList.remove('hidden');
   geocodeCity(cityRaw).then(results=>{
-    if(!results||results.length===0){
+    const seen=new Set();
+    const unique=(results||[]).filter(r=>{
+      const city=r.address?.town||r.address?.village||r.address?.city||r.address?.municipality||r.display_name.split(',')[0].trim();
+      const dept=r.address?.county||r.address?.state_district||'';
+      const key=`${city.toLowerCase().trim()}-${dept.toLowerCase().trim()}`;
+      if(seen.has(key))return false;
+      seen.add(key);return true;
+    });
+    if(!unique.length){
       sugDiv.innerHTML='<span class="city-sug-none">Ville introuvable — nom conservé</span>';
       setTimeout(()=>{sugDiv.classList.add('hidden');sugDiv.innerHTML='';},2000);
       _applyEdit(raw,simplified,type,cityRaw,null);
-    }else if(results.length===1){
+    }else if(unique.length===1){
       sugDiv.classList.add('hidden');sugDiv.innerHTML='';
-      const r=results[0];
+      const r=unique[0];
       const city=r.address?.town||r.address?.village||r.address?.city||r.address?.municipality||r.display_name.split(',')[0].trim();
       _applyEdit(raw,simplified,type,city,r);
     }else{
       sugDiv.innerHTML='<p class="city-sug-label">Plusieurs résultats — choisissez :</p>';
-      results.forEach(r=>{
+      unique.forEach(r=>{
         const city=r.address?.town||r.address?.village||r.address?.city||r.address?.municipality||r.display_name.split(',')[0].trim();
         const dept=r.address?.county||r.address?.state_district||'';
         const btn=document.createElement('button');
@@ -1066,13 +1115,16 @@ function _applyEdit(raw,simplified,type,cityName,geoResult){
   state.deptName=dept;state.regionName=region;
   document.getElementById('sub-dept').textContent=dept;
   document.getElementById('sub-region').textContent=region;
-  state.comcomName='';document.getElementById('sub-comcom').textContent='';
+  state.comcomName='';state.comcomWikiTitle='';document.getElementById('sub-comcom').textContent='';
   const lat=parseFloat(geoResult.lat);const lon=parseFloat(geoResult.lon);
   if(!isNaN(lat)&&!isNaN(lon)){
     state.manualCoords={lat,lon};
     updateOsmLink();
-    fetchComcom(lat,lon).then(cc=>{
-      if(cc){state.comcomName=cc;document.getElementById('sub-comcom').textContent=cc;}
+    fetchComcom(lat,lon).then(epci=>{
+      if(!epci) return;
+      state.comcomName=epci.nom;
+      document.getElementById('sub-comcom').textContent=epci.nom;
+      fetchEpciWikiTitle(epci.code).then(t=>{if(t)state.comcomWikiTitle=t;}).catch(()=>{});
     }).catch(()=>{});
     // Plaques et monuments pour la ville géocodée
     state.plaques=[];state.monuments=[];
