@@ -362,9 +362,11 @@ async function fetchOSMPlaques(lat,lon){
       _commonsCategory=commonsVal;
     let wikiUrl=null;
     if(t.wikipedia){const[lang,...rest]=t.wikipedia.split(':');wikiUrl=`https://${lang}.wikipedia.org/wiki/${encodeURIComponent(rest.join(':'))}`;}
+    const historic=t.historic||'';const artType=t.artwork_type||'';const memorial=t.memorial||'';
+    const kind=(historic==='plaque'||memorial.includes('plaque')||memorial.includes('blue_plaque')||artType.includes('plaque'))?'plaque':'monument';
     return{id:`osm-${n.id}`,name:t.name||t.inscription?.split('\n')[0]||'Plaque commémorative',
       inscription:t.inscription||t.description||null,lat:n.lat,lon:n.lon,photo,wikiUrl,_commonsCategory,
-      distance:haversine(lat,lon,n.lat,n.lon)};
+      distance:haversine(lat,lon,n.lat,n.lon),kind};
   });
 }
 
@@ -400,7 +402,7 @@ SELECT DISTINCT ?item ?label ?coord ?image ?article WHERE {
       }
       return{id:`wd-${qid}`,name:b.label?.value||'Plaque commémorative',inscription:null,
         lat:pLat,lon:pLon,photo,wikiUrl:b.article?.value||null,_commonsCategory:null,
-        distance:haversine(lat,lon,pLat,pLon)};
+        distance:haversine(lat,lon,pLat,pLon),kind:'plaque'};
     }).filter(Boolean);
   }catch{return[];}
 }
@@ -416,7 +418,7 @@ async function fetchOpenPlaques(lat,lon){
       id:`op-${p.id}`,name:p.lead_subject?.name||p.inscription?.split('\n')[0]||'Plaque',
       inscription:p.inscription||null,lat:parseFloat(p.latitude),lon:parseFloat(p.longitude),
       photo:p.photos?.[0]?.large_url||null,wikiUrl:null,_commonsCategory:null,
-      distance:haversine(lat,lon,parseFloat(p.latitude),parseFloat(p.longitude))}));
+      distance:haversine(lat,lon,parseFloat(p.latitude),parseFloat(p.longitude)),kind:'plaque'}));
   }catch{return[];}
 }
 
@@ -804,16 +806,18 @@ async function renderPlaques(){
   const list=document.getElementById('plaques-list');
   if(!state.plaques.length){list.innerHTML=`<div class="plaques-empty">🏅<br><br>${UI.empty.noPlaque}</div>`;return;}
   list.innerHTML=state.plaques.map((p,i)=>{
+    const icon=p.kind==='plaque'?'🏅':'🏛️';
     const thumb=p.photo
-      ?`<img src="${p.photo}" class="pl-thumb" alt="${p.name}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\"pl-placeholder\\">🏅</div>'">`
-      :`<div class="pl-placeholder">🏅</div>`;
+      ?`<img src="${p.photo}" class="pl-thumb" alt="${p.name}" loading="lazy" onerror="this.outerHTML='<div class=\\"pl-placeholder\\">${icon}</div>'">`
+      :`<div class="pl-placeholder">${icon}</div>`;
+    const kindBadge=`<span class="pl-kind ${p.kind==='plaque'?'pl-kind-plaque':'pl-kind-monument'}">${icon}</span>`;
     const detail=
-      (p.photo?`<img src="${p.photo}" class="pd-photo" alt="${p.name}" loading="lazy">`:'')+
+      (p.photo?`<img src="${p.photo}" class="pd-photo" alt="${p.name}" loading="lazy" onerror="this.style.display='none'">`:'')+
       (p.inscription?`<p class="pd-inscription">"${p.inscription.slice(0,300)}${p.inscription.length>300?'…':''}"</p>`:'')+
       (p.wikiUrl?`<a href="${p.wikiUrl}" target="_blank" rel="noopener" class="pd-wiki">📖 Voir sur Wikipédia</a>`:'')+
       '<div class="pd-wiki-lazy"></div>';
     return`<div class="plaque-item" data-i="${i}">
-      <div class="plaque-summary">${thumb}<div class="pl-info"><p class="pl-name">${p.name}</p><p class="pl-dist">${fmtDist(p.distance)}</p></div><span class="pl-chev">›</span></div>
+      <div class="plaque-summary">${thumb}<div class="pl-info"><p class="pl-name">${p.name}</p><p class="pl-dist">${kindBadge} ${fmtDist(p.distance)}</p></div><span class="pl-chev">›</span></div>
       <div class="plaque-detail"><div class="pd-inner">${detail}</div></div>
     </div>`;
   }).join('');
@@ -1061,13 +1065,14 @@ function applyEdit(){
   sugDiv.innerHTML='<span class="city-sug-loading">Recherche…</span>';
   sugDiv.classList.remove('hidden');
   geocodeCity(cityRaw).then(results=>{
-    const seen=new Set();
+    const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+    const seenLabels=new Set();
     const unique=(results||[]).filter(r=>{
       const city=r.address?.town||r.address?.village||r.address?.city||r.address?.municipality||r.display_name.split(',')[0].trim();
       const dept=r.address?.county||r.address?.state_district||'';
-      const key=`${city.toLowerCase().trim()}-${dept.toLowerCase().trim()}`;
-      if(seen.has(key))return false;
-      seen.add(key);return true;
+      const label=norm(dept?`${city} (${dept})`:city);
+      if(seenLabels.has(label))return false;
+      seenLabels.add(label);return true;
     });
     if(!unique.length){
       sugDiv.innerHTML='<span class="city-sug-none">Ville introuvable — nom conservé</span>';
@@ -1099,6 +1104,12 @@ function _applyEdit(raw,simplified,type,cityName,geoResult){
     document.getElementById('home-type').textContent=type;
     document.getElementById('home-name').textContent=simplified;
     document.getElementById('sub-street').textContent=simplified;
+  }else if(cityName){
+    // Ville seule : effacer la rue précédente
+    state.streetSimple='';state.streetType='';state.streetFull='';
+    document.getElementById('home-type').textContent='';
+    document.getElementById('home-name').textContent='—';
+    document.getElementById('sub-street').textContent='';
   }
   state.manualEdit=true;state.manualCity=cityName;state.wikiCache={};
   if(cityName) state.cityName=cityName;

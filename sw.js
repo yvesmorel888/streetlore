@@ -1,4 +1,4 @@
-const CACHE = 'streetlore-v32';
+const CACHE = 'streetlore-v33';
 const SHELL = ['./', './index.html', './style.css', './app.js', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', e => {
